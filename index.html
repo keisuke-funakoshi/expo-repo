@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>展示会視察レポート</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f1318">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EXPO REPORT">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script>
+// ===== 自作ZIPライブラリ (CDN不要・オフライン動作) =====
+var JSZip = (function(){
+  // ヘルパー
+  function u16(v){ return [(v)&0xff,(v>>8)&0xff]; }
+  function u32(v){ return [(v)&0xff,(v>>8)&0xff,(v>>16)&0xff,(v>>24)&0xff]; }
+  function sBytes(s){
+    var a=new Uint8Array(s.length);
+    for(var i=0;i<s.length;i++) a[i]=s.charCodeAt(i)&0xff;
+    return a;
+  }
+  function cat(arrays){
+    var n=0; for(var i=0;i<arrays.length;i++) n+=arrays[i].length;
+    var o=new Uint8Array(n),p=0;
+    for(var i=0;i<arrays.length;i++){o.set(arrays[i],p);p+=arrays[i].length;}
+    return o;
+  }
+  // CRC32
+  var CT=(function(){
+    var t=new Uint32Array(256);
+    for(var i=0;i<256;i++){var c=i;for(var j=0;j<8;j++)c=c&1?(0xedb88320^(c>>>1)):(c>>>1);t[i]=c;}
+    return t;
+  })();
+  function crc32(b){
+    var c=0xffffffff;
+    for(var i=0;i<b.length;i++) c=CT[(c^b[i])&0xff]^(c>>>8);
+    return (c^0xffffffff)>>>0;
+  }
+
+  function Zip(){this._files=[];}
+  Zip.prototype.file=function(name,data,opts){
+    if(opts&&opts.base64){
+      var s=atob(data.replace(/[^A-Za-z0-9+/=]/g,''));
+      var a=new Uint8Array(s.length);
+      for(var i=0;i<s.length;i++) a[i]=s.charCodeAt(i);
+      data=a;
+    } else if(typeof data==='string'){
+      data=sBytes(data);
+    }
+    this._files.push({name:sBytes(name),data:data});
+    return this;
+  };
+  Zip.prototype.generateAsync=function(opts){
+    var files=this._files;
+    return new Promise(function(resolve){
+      // Build local file entries
+      var locals=[];
+      var offsets=[];
+      var pos=0;
+      files.forEach(function(f){
+        var crc=crc32(f.data);
+        var sz=f.data.length;
+        var lh=new Uint8Array([
+          0x50,0x4b,0x03,0x04,  // local sig
+          20,0,                   // version needed
+          0,0,                    // general flags
+          0,0,                    // compression: STORE
+          0,0,                    // last mod time
+          0,0,                    // last mod date
+        ].concat(u32(crc))
+         .concat(u32(sz))
+         .concat(u32(sz))
+         .concat(u16(f.name.length))
+         .concat(u16(0))          // extra field len
+        );
+        var entry=cat([lh,f.name,f.data]);
+        offsets.push(pos);
+        locals.push(entry);
+        pos+=entry.length;
+      });
+
+      // Central directory
+      var cds=[];
+      var cdStart=pos;
+      files.forEach(function(f,i){
+        var crc=crc32(f.data);
+        var sz=f.data.length;
+        var cd=new Uint8Array([
+          0x50,0x4b,0x01,0x02,  // central sig
+          20,0,                   // version made by
+          20,0,                   // version needed
+          0,0,                    // general flags
+          0,0,                    // compression: STORE
+          0,0,                    // last mod time
+          0,0,                    // last mod date
+        ].concat(u32(crc))
+         .concat(u32(sz))
+         .concat(u32(sz))
+         .concat(u16(f.name.length))
+         .concat(u16(0))          // extra field len
+         .concat(u16(0))          // file comment len
+         .concat(u16(0))          // disk number start
+         .concat(u16(0))          // internal attr
+         .concat(u32(0))          // external attr
+         .concat(u32(offsets[i])) // local header offset
+        );
+        cds.push(cat([cd,f.name]));
+      });
+
+      var cdSize=0; for(var i=0;i<cds.length;i++) cdSize+=cds[i].length;
+      var eocd=new Uint8Array([
+        0x50,0x4b,0x05,0x06,  // eocd sig
+        0,0,                    // disk number
+        0,0,                    // disk with cd
+      ].concat(u16(files.length))
+       .concat(u16(files.length))
+       .concat(u32(cdSize))
+       .concat(u32(cdStart))
+       .concat(u16(0))          // comment len
+      );
+
+      var all=locals.concat(cds).concat([eocd]);
+      var blob=new Blob([cat(all)],{type:(opts&&opts.mimeType)||'application/zip'});
+      resolve(blob);
+    });
+  };
+
+  return Zip;
+})();
+</script>
+<style>
+/* ===== 変数 ===== */
+:root{--bg:#0f1318;--card:#1e2633;--card2:#232d3d;--border:#2a3748;
+  --accent:#f0a020;--muted:#6a7d96;--text:#e8edf4;
+  --tag:#263347;--danger:#e05040;--success:#38b878;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh;}
+
+/* ===== TOP NAV ===== */
+#topNav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(15,19,24,.97);
+  border-bottom:1px solid var(--border);padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;}
+.nav-logo{display:flex;align-items:center;gap:8px;}
+.nav-hex{width:26px;height:26px;background:var(--accent);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;align-items:center;justify-content:center;font-size:11px;}
+.nav-title{font-family:monospace;font-size:17px;letter-spacing:2px;font-weight:700;}
+.nav-badge{background:var(--accent);color:var(--bg);font-weight:700;font-size:11px;border-radius:20px;padding:2px 8px;}
+
+/* ===== SCREENS ===== */
+.screen{display:none;padding-top:58px;padding-bottom:88px;}
+.screen.active{display:block;}
+
+/* ===== BOTTOM NAV ===== */
+#bottomNav{position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:rgba(15,19,24,.97);border-top:1px solid var(--border);display:flex;}
+.nav-tab{flex:1;padding:9px 2px;display:flex;flex-direction:column;align-items:center;
+  gap:2px;cursor:pointer;border:none;background:transparent;color:var(--muted);
+  transition:color .1s, background .1s;border-radius:8px;}
+.nav-tab.active{color:var(--accent);}
+.nav-tab:active{background:var(--card2);color:var(--accent);transform:scale(0.94);}
+.nav-tab-icon{font-size:18px;transition:transform .1s;}
+.nav-tab-label{font-size:9px;}
+
+/* ===== FAB ===== */
+#fab{position:fixed;bottom:74px;right:16px;z-index:150;width:52px;height:52px;
+  border-radius:50%;background:var(--accent);color:var(--bg);border:none;font-size:26px;
+  cursor:pointer;box-shadow:0 4px 20px rgba(240,160,32,.4);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .1s,box-shadow .1s;}
+#fab:active{transform:scale(0.88);box-shadow:0 2px 8px rgba(240,160,32,.2);}
+
+/* ===== CARDS ===== */
+.card{background:var(--card);border-radius:14px;border:1px solid var(--border);overflow:hidden;}
+.card-hdr{background:var(--card2);padding:9px 14px;font-size:10px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
+.sec-hdr{background:var(--card2);padding:8px 14px;font-size:10px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0;}
+
+/* ===== META ===== */
+.meta-row{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:10px;}
+.meta-row:last-child{border-bottom:none;}
+.meta-icon{font-size:14px;min-width:20px;text-align:center;}
+.meta-key{font-size:11px;color:var(--muted);min-width:68px;}
+.meta-val{flex:1;background:transparent;border:none;color:var(--text);
+  font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:500;outline:none;}
+.meta-val::placeholder{color:var(--border);}
+
+/* ===== TEXTAREA ===== */
+.fta{width:100%;background:transparent;border:none;color:var(--text);
+  font-family:'Noto Sans JP',sans-serif;font-size:13px;line-height:1.8;
+  padding:10px 14px;resize:none;outline:none;min-height:72px;}
+.fta::placeholder{color:var(--border);}
+
+/* ===== SUPPLIER ITEMS ===== */
+.s-item{background:var(--card);border-radius:14px;border:1px solid var(--border);
+  padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.s-num{font-family:monospace;font-size:22px;color:var(--accent);font-weight:700;min-width:32px;}
+.s-info{flex:1;min-width:0;}
+.s-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.s-name.empty{color:var(--muted);font-style:italic;font-size:13px;}
+.s-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;}
+.s-tag{background:var(--tag);color:var(--muted);font-size:10px;border-radius:4px;
+  padding:2px 6px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.s-stars{font-size:11px;color:var(--accent);margin-top:3px;}
+.s-thumb{border-radius:8px;overflow:hidden;flex-shrink:0;width:40px;height:40px;}
+.s-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.s-ph{border-radius:8px;background:var(--tag);width:40px;height:40px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;}
+
+/* ===== DETAIL ===== */
+#detailHdr{position:sticky;top:0;z-index:100;background:rgba(15,19,24,.97);
+  border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:8px;}
+.back-btn{width:34px;height:34px;background:var(--card);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;}
+#dNum{font-family:monospace;font-size:20px;color:var(--accent);font-weight:700;}
+#dName{flex:1;background:transparent;border:none;color:var(--text);
+  font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:500;outline:none;}
+#dName::placeholder{color:var(--muted);}
+.del-btn{width:32px;height:32px;background:transparent;border:1px solid var(--border);
+  border-radius:10px;color:var(--muted);font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;}
+
+/* ===== STARS ===== */
+.star-btn{background:none;border:none;cursor:pointer;font-size:26px;color:var(--border);line-height:1;padding:0;}
+.star-btn.on{color:var(--accent);}
+
+/* ===== IMAGE SIZE ===== */
+.size-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-size:11px;cursor:pointer;}
+.size-btn.active{background:var(--accent);border-color:var(--accent);color:var(--bg);font-weight:700;}
+.img-grid{display:grid;gap:6px;padding:10px;}
+.img-grid.sm{grid-template-columns:repeat(4,1fr);}
+.img-grid.md{grid-template-columns:repeat(3,1fr);}
+.img-grid.lg{grid-template-columns:repeat(2,1fr);}
+.img-wrap{position:relative;border-radius:8px;overflow:hidden;background:var(--tag);aspect-ratio:1;}
+.img-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+.img-del{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.7);border:none;
+  border-radius:50%;width:22px;height:22px;color:#fff;font-size:11px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;}
+.add-photo{border-radius:8px;border:2px dashed var(--border);background:transparent;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;color:var(--muted);font-size:11px;cursor:pointer;aspect-ratio:1;}
+.add-photo input{display:none;}
+
+/* ===== BUTTONS ===== */
+.big-btn{width:100%;padding:14px;border-radius:14px;border:none;background:var(--accent);
+  color:var(--bg);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:1px;
+  transition:transform .1s,opacity .1s;}
+.big-btn:active{transform:scale(0.96);opacity:0.82;}
+.big-btn.green{background:var(--success);}
+.big-btn.blue{background:#3a7bd5;}
+.big-btn.gray{background:var(--card2);color:var(--muted);border:1px solid var(--border);}
+.big-btn.complete{background:linear-gradient(135deg,#2d8a5e,#38b878);font-size:15px;padding:16px;
+  box-shadow:0 4px 20px rgba(56,184,120,.35);}
+.back-btn{transition:transform .1s,background .1s;} .back-btn:active{transform:scale(0.9);background:var(--card2);}
+.del-btn{transition:transform .1s,background .1s;}  .del-btn:active{transform:scale(0.9);background:var(--danger);color:#fff;border-color:var(--danger);}
+.star-btn{transition:transform .15s;} .star-btn:active{transform:scale(1.3);}
+.size-btn{transition:transform .1s;} .size-btn:active{transform:scale(0.9);}
+
+/* ===== ARCHIVE ===== */
+.rep-item{background:var(--card);border-radius:14px;border:1px solid var(--border);
+  padding:14px;margin-bottom:10px;border-left:4px solid var(--success);}
+.rep-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;
+  background:var(--success);color:#fff;display:inline-block;}
+
+/* ===== MAIL ===== */
+.ml{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.mi{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:13px;outline:none;}
+.mi::placeholder{color:var(--muted);}
+
+/* ===== EMPTY ===== */
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted);}
+.empty-icon{font-size:44px;margin-bottom:12px;}
+.empty-text{font-size:13px;line-height:1.7;}
+
+/* ===== TOAST ===== */
+#toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--success);color:#fff;padding:10px 22px;border-radius:30px;font-size:13px;
+  font-weight:600;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ===== 印刷用（PDF出力） ===== */
+#printArea{display:none;}
+@media print{
+  body > *{display:none !important;}
+  #printArea{display:block !important;color:#1a2332;font-family:sans-serif;font-size:11px;}
+  .p-cover{background:#1a2332;color:#fff;padding:40px 32px;page-break-after:always;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .p-label{font-size:9px;letter-spacing:4px;text-transform:uppercase;color:#6a7d96;margin-bottom:12px;}
+  .p-title{font-size:24px;font-weight:700;border-left:4px solid #f0a020;padding-left:12px;
+    margin-bottom:16px;line-height:1.4;color:#fff;}
+  .p-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;margin-top:12px;}
+  .p-ml{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#6a7d96;}
+  .p-mv{font-size:12px;color:#e8edf4;margin-top:2px;}
+  .p-summary{padding:14px 32px;border-bottom:2px solid #eee;margin-bottom:12px;}
+  .p-sec-title{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:#888;margin-bottom:8px;}
+  .p-text{font-size:11px;color:#333;line-height:1.8;background:#f8f9fc;
+    padding:10px 14px;border-left:3px solid #f0a020;}
+  .p-stats{display:flex;gap:10px;margin-top:10px;}
+  .p-stat{text-align:center;background:#1a2332;color:#fff;border-radius:6px;padding:8px 14px;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .p-stat-n{font-size:20px;font-weight:700;color:#f0a020;line-height:1;}
+  .p-stat-l{font-size:8px;color:#6a7d96;margin-top:2px;}
+  .p-section{padding:0 32px 24px;}
+  .p-list-title{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:#888;
+    padding-bottom:5px;border-bottom:1px solid #eee;margin-bottom:10px;}
+  .p-card{border:1px solid #dde3ec;border-radius:5px;overflow:hidden;margin-bottom:8px;
+    page-break-inside:avoid;}
+  .p-card-hd{background:#1a2332;color:#fff;padding:7px 12px;display:flex;align-items:center;gap:8px;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .p-cnum{font-size:17px;color:#f0a020;font-weight:700;min-width:26px;}
+  .p-cnm{font-size:13px;font-weight:600;flex:1;color:#fff;}
+  .p-cst{color:#f0a020;font-size:12px;}
+  .p-card-body{display:grid;grid-template-columns:1fr 1fr 1fr;}
+  .p-cell{padding:6px 10px;border-right:1px solid #eee;}
+  .p-cell:last-child{border-right:none;}
+  .p-clbl{font-size:7px;letter-spacing:1px;text-transform:uppercase;color:#8a9ab0;margin-bottom:2px;}
+  .p-cval{font-size:10px;line-height:1.5;}
+  .p-imgs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 10px;border-top:1px solid #eee;}
+  .p-imgs img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px;border:1px solid #dde3ec;display:block;}
+  .p-footer{text-align:center;font-size:9px;color:#aaa;padding:10px;border-top:1px solid #eee;margin-top:6px;}
+}
+</style>
+</head>
+<body>
+
+<!-- 印刷用エリア（画面には非表示、印刷時のみ表示） -->
+<div id="printArea"></div>
+
+<!-- TOP NAV -->
+<div id="topNav">
+  <div class="nav-logo">
+    <div class="nav-hex">⚙</div>
+    <span class="nav-title">EXPO REPORT</span>
+  </div>
+  <span class="nav-badge" id="badge">0社</span>
+</div>
+
+<!-- HOME -->
+<div class="screen active" id="sHome">
+  <div style="margin:12px 14px 0" class="card">
+    <div class="card-hdr">▸ 展示会情報</div>
+    <div class="meta-row"><span class="meta-icon">🏭</span><span class="meta-key">展示会名</span>
+      <input class="meta-val" id="exName" type="text" placeholder="機械技術要素展2026" oninput="saveLS()"></div>
+    <div class="meta-row"><span class="meta-icon">📅</span><span class="meta-key">開催日</span>
+      <input class="meta-val" id="exDate" type="date" style="color-scheme:dark" onchange="saveLS()"></div>
+    <div class="meta-row"><span class="meta-icon">📍</span><span class="meta-key">会場</span>
+      <input class="meta-val" id="exVenue" type="text" placeholder="東京ビッグサイト" oninput="saveLS()"></div>
+    <div class="meta-row"><span class="meta-icon">👤</span><span class="meta-key">担当者</span>
+      <input class="meta-val" id="exReporter" type="text" placeholder="氏名" oninput="saveLS()"></div>
+  </div>
+  <div style="margin:10px 14px 0;padding:14px" class="card">
+    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">総評・概要メモ</div>
+    <textarea class="fta" id="overall" placeholder="展示会全体の所感、注目トレンドなど…" rows="3" style="min-height:unset" oninput="saveLS()"></textarea>
+  </div>
+  <div style="padding:14px 14px 6px;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-family:monospace;font-size:13px;letter-spacing:3px;color:var(--muted);font-weight:700">SUPPLIER LIST</span>
+    <span style="font-size:11px;color:var(--muted)" id="listCount">0社</span>
+  </div>
+  <div style="padding:0 14px;display:flex;flex-direction:column;gap:8px" id="sList"></div>
+  <div style="padding:16px 14px 4px">
+    <button class="big-btn complete" onclick="completeReport()">✅ &nbsp;この報告書を完成させる</button>
+    <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;line-height:1.7">
+      完成するとアーカイブに保存され、新しい報告書を作成できます
+    </div>
+  </div>
+  <div style="height:12px"></div>
+</div>
+
+<!-- DETAIL -->
+<div class="screen" id="sDetail">
+  <div id="detailHdr">
+    <button class="back-btn" onclick="goBack()">‹</button>
+    <span id="dNum">01</span>
+    <input id="dName" type="text" placeholder="サプライヤ名を入力" oninput="save()">
+    <button class="del-btn" onclick="deleteCurrent()">🗑</button>
+  </div>
+  <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+    <div class="card">
+      <div class="sec-hdr"><span class="dot"></span>出展品目</div>
+      <textarea class="fta" id="dItems" placeholder="例：精密旋削部品、CNC加工品…" rows="3" oninput="save()"></textarea>
+    </div>
+    <div class="card">
+      <div class="sec-hdr"><span class="dot"></span>特色・強み</div>
+      <textarea class="fta" id="dFeatures" placeholder="例：公差±0.003mm対応、難削材加工実績…" rows="3" oninput="save()"></textarea>
+    </div>
+    <div class="card" style="padding:14px;display:flex;align-items:center;gap:14px">
+      <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);white-space:nowrap">評価</span>
+      <div style="display:flex;gap:6px">
+        <button class="star-btn" id="s1" onclick="setStar(1)">★</button>
+        <button class="star-btn" id="s2" onclick="setStar(2)">★</button>
+        <button class="star-btn" id="s3" onclick="setStar(3)">★</button>
+        <button class="star-btn" id="s4" onclick="setStar(4)">★</button>
+        <button class="star-btn" id="s5" onclick="setStar(5)">★</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sec-hdr"><span class="dot"></span>メモ・連絡先</div>
+      <textarea class="fta" id="dNote" placeholder="担当者名、価格感、フォロー予定など…" rows="3" oninput="save()"></textarea>
+    </div>
+    <div class="card">
+      <div class="sec-hdr">
+        <span class="dot" style="background:var(--muted)"></span>画像
+        <span style="margin-left:auto;display:flex;gap:4px">
+          <button class="size-btn active" id="szSm" onclick="setImgSize('sm')">小</button>
+          <button class="size-btn" id="szMd" onclick="setImgSize('md')">中</button>
+          <button class="size-btn" id="szLg" onclick="setImgSize('lg')">大</button>
+        </span>
+      </div>
+      <div class="img-grid sm" id="imgGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PDF/EXCEL -->
+<div class="screen" id="sPdf">
+  <div style="padding:14px">
+    <div class="card" style="margin-bottom:12px">
+      <div style="background:linear-gradient(135deg,#1e2633,#2a3748);padding:16px;border-bottom:2px solid var(--accent)">
+        <div id="pdfTitle" style="font-family:monospace;font-size:18px;letter-spacing:3px;font-weight:700;color:var(--accent)">展示会視察報告書</div>
+        <div id="pdfMeta" style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.8"></div>
+      </div>
+      <div id="pdfList"></div>
+    </div>
+    <button class="big-btn" style="margin-bottom:8px" onclick="doPrint()">🖨 &nbsp;PDF印刷</button>
+    <button class="big-btn blue" style="margin-bottom:8px" onclick="doExcel()">📊 &nbsp;Excel出力（CSV）</button>
+    <button class="big-btn" style="margin-bottom:8px;background:#c43e1c" onclick="doPptx()">📑 &nbsp;PowerPoint出力</button>
+    <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:4px;line-height:1.8;padding:0 8px">
+      PDF印刷：印刷ダイアログで「PDFとして保存」を選択<br>
+      CSV：Excelで開けるサプライヤ一覧<br>
+      PPTX：サプライヤ1社につき1スライド
+    </div>
+  </div>
+</div>
+
+<!-- MAIL -->
+<div class="screen" id="sMail">
+  <div style="padding:14px">
+    <div class="card">
+      <div style="background:linear-gradient(135deg,#1e2633,#1a2d1e);padding:16px;border-bottom:2px solid var(--success)">
+        <div style="font-family:monospace;font-size:18px;letter-spacing:3px;font-weight:700;color:var(--success)">✉ メール送信</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">報告書の本文をコピーして送信できます</div>
+      </div>
+      <div style="padding:14px;display:flex;flex-direction:column;gap:12px">
+        <div><div class="ml">宛先 (To)</div><input class="mi" id="mailTo" type="email" placeholder="example@company.com"></div>
+        <div><div class="ml">CC（任意）</div><input class="mi" id="mailCc" type="email" placeholder="cc@company.com"></div>
+        <div>
+          <div class="ml">本文プレビュー</div>
+          <textarea class="mi" id="mailBody" rows="10" readonly style="resize:none;line-height:1.7;font-size:11px;color:var(--muted);margin-top:5px"></textarea>
+        </div>
+        <button class="big-btn green" onclick="copyMail()">📋 &nbsp;本文をクリップボードにコピー</button>
+        <div style="background:var(--card2);border-radius:10px;padding:12px;font-size:12px;color:var(--muted);line-height:1.8">
+          <strong style="color:var(--text)">📌 送信手順</strong><br>
+          ① 上の「本文をコピー」を押す<br>
+          ② メールアプリを開いて新規作成<br>
+          ③ 宛先・本文欄に貼り付けて送信
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ARCHIVE -->
+<div class="screen" id="sArchive">
+  <div style="padding:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <span style="font-family:monospace;font-size:13px;letter-spacing:3px;color:var(--muted);font-weight:700">ARCHIVE</span>
+      <span style="font-size:11px;color:var(--muted)" id="archiveCount">0件</span>
+    </div>
+    <div id="archiveList"></div>
+    <div style="height:8px"></div>
+    <button class="big-btn blue" onclick="doAllExcel()">📊 &nbsp;全報告書をExcel一括出力</button>
+  </div>
+</div>
+
+<button id="fab" onclick="addSupplier()">＋</button>
+
+<div id="bottomNav">
+  <button class="nav-tab active" id="tHome" onclick="showTab('home')"><span class="nav-tab-icon">📋</span><span class="nav-tab-label">入力</span></button>
+  <button class="nav-tab" id="tPdf" onclick="showTab('pdf')"><span class="nav-tab-icon">🖨</span><span class="nav-tab-label">PDF/Excel</span></button>
+  <button class="nav-tab" id="tMail" onclick="showTab('mail')"><span class="nav-tab-icon">✉️</span><span class="nav-tab-label">メール</span></button>
+  <button class="nav-tab" id="tArchive" onclick="showTab('archive')"><span class="nav-tab-icon">🗂</span><span class="nav-tab-label">アーカイブ</span></button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ===== STATE =====
+var suppliers = [];
+var archive   = [];
+var currentId = null;
+var imgSize   = 'sm';
+
+// ===== INDEXEDDB =====
+var DB_NAME = 'expoReportDB';
+var DB_VER  = 1;
+var db      = null;
+
+function openDB(callback) {
+  if (db) { callback(db); return; }
+  var req = indexedDB.open(DB_NAME, DB_VER);
+  req.onupgradeneeded = function(e) {
+    var d = e.target.result;
+    if (!d.objectStoreNames.contains('state')) {
+      d.createObjectStore('state');
+    }
+  };
+  req.onsuccess = function(e) {
+    db = e.target.result;
+    callback(db);
+  };
+  req.onerror = function() {
+    toast('DB初期化エラー', 'var(--danger)');
+  };
+}
+
+function saveDB(callback) {
+  openDB(function(d) {
+    var data = {
+      suppliers: suppliers,
+      archive:   archive,
+      meta: {
+        name:     document.getElementById('exName').value,
+        date:     document.getElementById('exDate').value,
+        venue:    document.getElementById('exVenue').value,
+        reporter: document.getElementById('exReporter').value,
+        overall:  document.getElementById('overall').value
+      }
+    };
+    var tx  = d.transaction('state', 'readwrite');
+    var st  = tx.objectStore('state');
+    st.put(data, 'main');
+    tx.oncomplete = function() { if (callback) callback(); };
+    tx.onerror    = function() { toast('保存エラー', 'var(--danger)'); };
+  });
+}
+
+function loadDB(callback) {
+  openDB(function(d) {
+    var tx  = d.transaction('state', 'readonly');
+    var st  = tx.objectStore('state');
+    var req = st.get('main');
+    req.onsuccess = function(e) { callback(e.target.result || null); };
+    req.onerror   = function()  { callback(null); };
+  });
+}
+
+// saveLS → saveDB のラッパー（既存コードとの互換）
+function saveLS(callback) { saveDB(callback); }
+
+// ===== TOAST =====
+function toast(msg, col) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = col || 'var(--success)';
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2400);
+}
+
+// ===== TAB =====
+function showTab(name) {
+  var screens = ['sHome','sPdf','sMail','sArchive','sDetail'];
+  var tabs    = ['tHome','tPdf','tMail','tArchive'];
+  screens.forEach(function(id){ document.getElementById(id).classList.remove('active'); });
+  tabs.forEach(function(id){ document.getElementById(id).classList.remove('active'); });
+  document.getElementById('fab').style.display = name==='home' ? 'flex' : 'none';
+  var sm = {home:'sHome',pdf:'sPdf',mail:'sMail',archive:'sArchive'};
+  var tm = {home:'tHome',pdf:'tPdf',mail:'tMail',archive:'tArchive'};
+  if(sm[name]) document.getElementById(sm[name]).classList.add('active');
+  if(tm[name]) document.getElementById(tm[name]).classList.add('active');
+  if(name==='home')    renderList();
+  if(name==='pdf')     renderPdf();
+  if(name==='mail')    renderMail();
+  if(name==='archive') renderArchive();
+}
+function showDetail() {
+  var screens = ['sHome','sPdf','sMail','sArchive'];
+  screens.forEach(function(id){ document.getElementById(id).classList.remove('active'); });
+  document.getElementById('sDetail').classList.add('active');
+  document.getElementById('fab').style.display = 'none';
+}
+
+// ===== HELPERS =====
+function getS(id){ return suppliers.find(function(s){return s.id===id;}); }
+function getIdx(id){ return suppliers.findIndex(function(s){return s.id===id;}); }
+function updBadge(){ document.getElementById('badge').textContent = suppliers.length+'社'; }
+function getMeta(){
+  return {
+    name:     document.getElementById('exName').value || '展示会視察報告書',
+    date:     document.getElementById('exDate').value,
+    venue:    document.getElementById('exVenue').value,
+    reporter: document.getElementById('exReporter').value,
+    overall:  document.getElementById('overall').value
+  };
+}
+function setMeta(m){
+  document.getElementById('exName').value     = m.name     || '';
+  document.getElementById('exDate').value     = m.date     || '';
+  document.getElementById('exVenue').value    = m.venue    || '';
+  document.getElementById('exReporter').value = m.reporter || '';
+  document.getElementById('overall').value    = m.overall  || '';
+}
+
+// ===== LIST =====
+function renderList() {
+  updBadge();
+  document.getElementById('listCount').textContent = suppliers.length+'社';
+  var list = document.getElementById('sList');
+  if(!suppliers.length){
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔩</div><div class="empty-text">サプライヤがまだ登録されていません<br>＋ボタンから追加してください</div></div>';
+    return;
+  }
+  list.innerHTML = '';
+  suppliers.forEach(function(s,i){
+    var div = document.createElement('div');
+    div.className = 's-item';
+    div.onclick = function(){ openDetail(s.id); };
+    var tags = [s.items,s.features].filter(Boolean).map(function(t){
+      return '<span class="s-tag">'+t.slice(0,16)+'</span>';
+    }).join('');
+    var thumb = s.photos.length
+      ? '<div class="s-thumb"><img src="'+s.photos[0]+'"></div>'
+      : '<div class="s-ph">🔩</div>';
+    div.innerHTML =
+      '<span class="s-num">'+String(i+1).padStart(2,'0')+'</span>'+
+      '<div class="s-info">'+
+        '<div class="s-name'+(s.name?'':' empty')+'">'+(s.name||'（企業名未入力）')+'</div>'+
+        '<div class="s-tags">'+tags+'</div>'+
+        (s.rating?'<div class="s-stars">'+'★'.repeat(s.rating)+'☆'.repeat(5-s.rating)+'</div>':'')+
+      '</div>'+thumb+
+      '<span style="color:var(--border);font-size:16px">›</span>';
+    list.appendChild(div);
+  });
+}
+
+// ===== ADD SUPPLIER =====
+function addSupplier(){
+  var id = Date.now();
+  suppliers.push({id:id,name:'',items:'',features:'',note:'',rating:0,photos:[]});
+  updBadge(); saveLS(); openDetail(id);
+}
+
+// ===== DETAIL =====
+function openDetail(id){
+  currentId = id;
+  var s   = getS(id);
+  var idx = getIdx(id);
+  document.getElementById('dNum').textContent    = String(idx+1).padStart(2,'0');
+  document.getElementById('dName').value         = s.name;
+  document.getElementById('dItems').value        = s.items;
+  document.getElementById('dFeatures').value     = s.features;
+  document.getElementById('dNote').value         = s.note;
+  renderStars(s.rating);
+  applyImgSize(imgSize);
+  renderPhotos();
+  showDetail();
+}
+function save(){
+  if(!currentId) return;
+  var s = getS(currentId); if(!s) return;
+  s.name     = document.getElementById('dName').value;
+  s.items    = document.getElementById('dItems').value;
+  s.features = document.getElementById('dFeatures').value;
+  s.note     = document.getElementById('dNote').value;
+  saveLS();
+}
+function goBack(){ save(); currentId=null; showTab('home'); }
+function deleteCurrent(){
+  if(!currentId) return;
+  suppliers = suppliers.filter(function(s){return s.id!==currentId;});
+  currentId=null; updBadge(); saveLS();
+  toast('削除しました','var(--danger)'); showTab('home');
+}
+
+// ===== STARS =====
+function renderStars(r){
+  [1,2,3,4,5].forEach(function(i){
+    var el=document.getElementById('s'+i); if(el) el.classList.toggle('on',i<=r);
+  });
+}
+function setStar(v){
+  if(!currentId) return;
+  var s=getS(currentId); s.rating=(s.rating===v)?0:v;
+  renderStars(s.rating); saveLS();
+}
+
+// ===== IMAGE SIZE =====
+function setImgSize(sz){
+  imgSize=sz;
+  ['sm','md','lg'].forEach(function(s){
+    var id='sz'+s.charAt(0).toUpperCase()+s.slice(1);
+    document.getElementById(id).classList.toggle('active',s===sz);
+  });
+  applyImgSize(sz);
+}
+function applyImgSize(sz){
+  var g=document.getElementById('imgGrid'); if(g) g.className='img-grid '+sz;
+}
+
+// ===== PHOTOS =====
+function compressImage(file, maxW, maxH, quality, callback) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var w = img.width, h = img.height;
+      if (w > maxW || h > maxH) {
+        var ratio = Math.min(maxW / w, maxH / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      callback(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handlePhoto(input) {
+  if (!currentId) return;
+  var s = getS(currentId);
+  var files = Array.from(input.files);
+  if (!files.length) return;
+  var loaded = 0;
+  // 圧縮設定：最大1200px、JPEG品質0.75
+  var MAX_W = 1200, MAX_H = 1200, QUALITY = 0.75;
+  toast('画像を圧縮中…', '#3a7bd5');
+  files.forEach(function(file) {
+    compressImage(file, MAX_W, MAX_H, QUALITY, function(dataUrl) {
+      s.photos.push(dataUrl);
+      loaded++;
+      if (loaded === files.length) {
+        saveLS(function() { renderPhotos(); toast('画像を追加しました（圧縮済）'); });
+      }
+    });
+  });
+  input.value = '';
+}
+function removePhoto(idx){
+  if(!currentId) return;
+  getS(currentId).photos.splice(idx,1); saveLS(); renderPhotos();
+}
+function renderPhotos(){
+  var s=getS(currentId), grid=document.getElementById('imgGrid'); if(!grid) return;
+  grid.innerHTML='';
+  if(s){ s.photos.forEach(function(src,i){
+    var w=document.createElement('div'); w.className='img-wrap';
+    w.innerHTML='<img src="'+src+'"><button class="img-del" onclick="removePhoto('+i+')">✕</button>';
+    grid.appendChild(w);
+  }); }
+  // ライブラリボタン（capture なし）
+  var lblLib=document.createElement('label'); lblLib.className='add-photo';
+  lblLib.innerHTML='<span style="font-size:22px">🖼</span><span>ライブラリ</span><input type="file" accept="image/*" multiple onchange="handlePhoto(this)">';
+  grid.appendChild(lblLib);
+  // カメラボタン（capture あり）
+  var lblCam=document.createElement('label'); lblCam.className='add-photo';
+  lblCam.innerHTML='<span style="font-size:22px">📷</span><span>カメラ</span><input type="file" accept="image/*" capture="environment" onchange="handlePhoto(this)">';
+  grid.appendChild(lblCam);
+}
+
+// ===== COMPLETE =====
+function completeReport(){
+  var m=getMeta();
+  if(!m.name||m.name==='展示会視察報告書'){ toast('展示会名を入力してください','var(--danger)'); return; }
+  archive.push({
+    id:Date.now(), meta:m,
+    suppliers:JSON.parse(JSON.stringify(suppliers)),
+    completedAt:new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'})
+  });
+  suppliers=[]; setMeta({});
+  updBadge(); saveLS();
+  toast('✅ アーカイブに保存しました！'); showTab('archive');
+}
+
+// ===== ARCHIVE =====
+function renderArchive(){
+  var list=document.getElementById('archiveList');
+  document.getElementById('archiveCount').textContent=archive.length+'件';
+  if(!archive.length){
+    list.innerHTML='<div class="empty-state"><div class="empty-icon">🗂</div><div class="empty-text">まだ完成した報告書がありません<br>「入力」タブで完成ボタンを押すと保存されます</div></div>';
+    return;
+  }
+  list.innerHTML='';
+  archive.slice().reverse().forEach(function(rep,ri){
+    var realIdx=archive.length-1-ri;
+    var div=document.createElement('div'); div.className='rep-item';
+    div.innerHTML=
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+        '<span style="font-family:monospace;font-size:16px;color:var(--accent);font-weight:700">#'+String(archive.length-ri).padStart(2,'0')+'</span>'+
+        '<span class="rep-badge">完成</span>'+
+        '<button onclick="deleteArchive('+realIdx+')" style="margin-left:auto;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;padding:3px 8px;cursor:pointer">🗑 削除</button>'+
+      '</div>'+
+      '<div style="font-size:14px;font-weight:500;margin-bottom:3px">'+rep.meta.name+'</div>'+
+      '<div style="font-size:11px;color:var(--muted)">'+
+        [rep.meta.date&&'📅 '+rep.meta.date, rep.meta.venue&&'📍 '+rep.meta.venue].filter(Boolean).join('　')+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+rep.suppliers.length+'社　完成日：'+rep.completedAt+'</div>'+
+      '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">'+
+        '<button class="big-btn" style="flex:1;padding:9px;font-size:12px" onclick="editArchive('+realIdx+')">✏️ 再編集</button>'+
+        '<button class="big-btn" style="flex:1;padding:9px;font-size:12px" onclick="printArchive('+realIdx+')">🖨 PDF</button>'+
+        '<button class="big-btn blue" style="flex:1;padding:9px;font-size:12px" onclick="excelArchive('+realIdx+')">📊 CSV</button>'+
+        '<button class="big-btn" style="flex:1;padding:9px;font-size:12px;background:#c43e1c" onclick="pptxArchive('+realIdx+')">📑 PPTX</button>'+
+      '</div>';
+    list.appendChild(div);
+  });
+}
+function deleteArchive(idx){ archive.splice(idx,1); saveLS(); renderArchive(); toast('削除しました','var(--danger)'); }
+
+// ===== 再編集 =====
+function editArchive(idx){
+  var rep=archive[idx];
+  // 現在の入力中データがあれば確認
+  if(suppliers.length>0){
+    if(!confirm('現在入力中のデータは失われます。再編集しますか？')) return;
+  }
+  archive.splice(idx,1); // アーカイブから取り出す
+  suppliers = JSON.parse(JSON.stringify(rep.suppliers));
+  setMeta(rep.meta);
+  updBadge(); saveLS();
+  toast('再編集モードで開きました'); showTab('home');
+}
+
+// ===== PDF印刷 =====
+function buildPrintHtml(meta, sups){
+  var today=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'});
+  return '<div class="p-cover">'+
+    '<div class="p-label">Exhibition Inspection Report</div>'+
+    '<div class="p-title">'+meta.name+'</div>'+
+    '<div class="p-meta-grid">'+
+      (meta.date?'<div><div class="p-ml">開催日</div><div class="p-mv">'+meta.date+'</div></div>':'')+
+      (meta.venue?'<div><div class="p-ml">会場</div><div class="p-mv">'+meta.venue+'</div></div>':'')+
+      (meta.reporter?'<div><div class="p-ml">担当者</div><div class="p-mv">'+meta.reporter+'</div></div>':'')+
+      '<div><div class="p-ml">作成日</div><div class="p-mv">'+today+'</div></div>'+
+    '</div>'+
+  '</div>'+
+  '<div class="p-summary">'+
+    '<div class="p-sec-title">開催概要・総評</div>'+
+    '<div class="p-text">'+(meta.overall?meta.overall.replace(/\n/g,'<br>'):'（総評・メモなし）')+'</div>'+
+    '<div class="p-stats">'+
+      '<div class="p-stat"><div class="p-stat-n">'+sups.length+'</div><div class="p-stat-l">視察社数</div></div>'+
+      '<div class="p-stat"><div class="p-stat-n">'+sups.filter(function(s){return s.rating>=4;}).length+'</div><div class="p-stat-l">高評価(★4+)</div></div>'+
+      '<div class="p-stat"><div class="p-stat-n">'+sups.reduce(function(a,s){return a+s.photos.length;},0)+'</div><div class="p-stat-l">撮影枚数</div></div>'+
+    '</div>'+
+  '</div>'+
+  '<div class="p-section">'+
+    '<div class="p-list-title">Supplier List — '+sups.length+' Companies</div>'+
+    sups.map(function(s,i){
+      return '<div class="p-card">'+
+        '<div class="p-card-hd"><span class="p-cnum">'+String(i+1).padStart(2,'0')+'</span>'+
+        '<span class="p-cnm">'+(s.name||'（未入力）')+'</span>'+
+        (s.rating?'<span class="p-cst">'+'★'.repeat(s.rating)+'</span>':'')+
+        '</div>'+
+        '<div class="p-card-body">'+
+          '<div class="p-cell"><div class="p-clbl">出展品目</div><div class="p-cval">'+(s.items||'―')+'</div></div>'+
+          '<div class="p-cell"><div class="p-clbl">特色・強み</div><div class="p-cval">'+(s.features||'―')+'</div></div>'+
+          '<div class="p-cell"><div class="p-clbl">メモ・連絡先</div><div class="p-cval">'+(s.note||'―')+'</div></div>'+
+        '</div>'+
+        (s.photos.length?'<div class="p-imgs">'+s.photos.slice(0,5).map(function(p){return '<img src="'+p+'">';}).join('')+'</div>':'')+
+        '</div>';
+    }).join('')+
+  '</div>'+
+  '<div class="p-footer">EXPO REPORT &nbsp;|&nbsp; '+today+' &nbsp;|&nbsp; '+meta.name+'</div>';
+}
+
+function doPrint(){
+  var pa=document.getElementById('printArea');
+  pa.innerHTML=buildPrintHtml(getMeta(),suppliers);
+  window.print();
+}
+function printArchive(idx){
+  var rep=archive[idx];
+  var pa=document.getElementById('printArea');
+  pa.innerHTML=buildPrintHtml(rep.meta,rep.suppliers);
+  window.print();
+}
+
+// ===== EXCEL =====
+function buildCsv(meta, sups){
+  var rows=[['No.','サプライヤ名','出展品目','特色・強み','メモ・連絡先','評価（★）','写真枚数']];
+  sups.forEach(function(s,i){
+    rows.push([i+1, s.name||'', s.items||'', s.features||'', s.note||'', s.rating||0, s.photos.length]);
+  });
+  var bom='\uFEFF';
+  var csv=rows.map(function(r){
+    return r.map(function(c){
+      var v=String(c).replace(/"/g,'""');
+      return (v.indexOf(',')>=0||v.indexOf('\n')>=0||v.indexOf('"')>=0)?'"'+v+'"':v;
+    }).join(',');
+  }).join('\n');
+  return bom+csv;
+}
+function downloadFile(content, filename, type){
+  var blob=new Blob([content],{type:type});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},1000);
+}
+function doExcel(){
+  var m=getMeta();
+  downloadFile(buildCsv(m,suppliers), m.name+'.csv', 'text/csv;charset=utf-8');
+  toast('CSVをダウンロードしました（Excelで開けます）');
+}
+function excelArchive(idx){
+  var rep=archive[idx];
+  downloadFile(buildCsv(rep.meta,rep.suppliers), rep.meta.name+'.csv', 'text/csv;charset=utf-8');
+  toast('CSVをダウンロードしました');
+}
+function doAllExcel(){
+  if(!archive.length){ toast('アーカイブが空です','var(--danger)'); return; }
+  var bom='\uFEFF';
+  var rows=[['展示会名','開催日','会場','担当者','No.','サプライヤ名','出展品目','特色・強み','メモ・連絡先','評価（★）','写真枚数']];
+  archive.forEach(function(rep){
+    rep.suppliers.forEach(function(s,i){
+      rows.push([rep.meta.name,rep.meta.date||'',rep.meta.venue||'',rep.meta.reporter||'',
+        i+1,s.name||'',s.items||'',s.features||'',s.note||'',s.rating||0,s.photos.length]);
+    });
+  });
+  var csv=rows.map(function(r){
+    return r.map(function(c){
+      var v=String(c).replace(/"/g,'""');
+      return (v.indexOf(',')>=0||v.indexOf('\n')>=0||v.indexOf('"')>=0)?'"'+v+'"':v;
+    }).join(',');
+  }).join('\n');
+  downloadFile(bom+csv, '展示会視察報告書_全件.csv', 'text/csv;charset=utf-8');
+  toast('全'+archive.length+'件をCSV出力しました');
+}
+
+// ===== PDF preview list =====
+function renderPdf(){
+  var m=getMeta();
+  document.getElementById('pdfTitle').textContent=m.name;
+  document.getElementById('pdfMeta').innerHTML=
+    [m.date&&'📅 '+m.date,m.venue&&'📍 '+m.venue,m.reporter&&'👤 '+m.reporter].filter(Boolean).join('　');
+  var list=document.getElementById('pdfList');
+  if(!suppliers.length){
+    list.innerHTML='<div style="padding:18px;text-align:center;color:var(--muted);font-size:13px">サプライヤを追加してください</div>';
+    return;
+  }
+  list.innerHTML=suppliers.map(function(s,i){
+    return '<div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:10px">'+
+      '<span style="font-family:monospace;font-size:18px;color:var(--accent);font-weight:700;min-width:28px">'+String(i+1).padStart(2,'0')+'</span>'+
+      '<div style="flex:1">'+
+        '<div style="font-size:13px;font-weight:500">'+(s.name||'（未入力）')+'</div>'+
+        (s.items?'<div style="font-size:11px;color:var(--muted)">品目：'+s.items+'</div>':'')+
+        (s.features?'<div style="font-size:11px;color:var(--muted)">特色：'+s.features+'</div>':'')+
+        (s.note?'<div style="font-size:11px;color:var(--muted)">備考：'+s.note+'</div>':'')+
+        (s.rating?'<div style="font-size:11px;color:var(--accent)">'+'★'.repeat(s.rating)+'☆'.repeat(5-s.rating)+'</div>':'')+
+      '</div></div>';
+  }).join('');
+}
+
+// ===== POWERPOINT =====
+function _x(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _b(d){ return d.split(',')[1]||''; }
+var PW=9144000, PH=5143500;
+
+function pSlide(shapes, bgCol){
+  var bg = bgCol
+    ? '<p:bg><p:bgPr><a:solidFill><a:srgbClr val="'+bgCol+'"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>'
+    : '';
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+'<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '+
+'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '+
+'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'+
+'<p:cSld>'+bg+
+'<p:spTree>'+
+'<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'+
+'<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/>'+
+'<a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'+
+shapes.join('')+
+'</p:spTree></p:cSld>'+
+'<p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>'+
+'</p:sld>';
+}
+
+function pRels(imgRels){
+  var s='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+'<Relationship Id="rIdL" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>';
+  (imgRels||[]).forEach(function(r){
+    s+='<Relationship Id="'+r.id+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'+r.t+'"/>';
+  });
+  return s+'</Relationships>';
+}
+
+function pTx(id,x,y,w,h,txt,o){
+  o=o||{};
+  return '<p:sp>'+
+'<p:nvSpPr><p:cNvPr id="'+id+'" name="t'+id+'"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr>'+
+'<p:spPr><a:xfrm><a:off x="'+x+'" y="'+y+'"/><a:ext cx="'+w+'" cy="'+h+'"/></a:xfrm>'+
+'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></p:spPr>'+
+'<p:txBody><a:bodyPr wrap="square" lIns="91440" rIns="91440" tIns="45720" bIns="45720"/>'+
+'<a:lstStyle/>'+
+'<a:p><a:pPr algn="'+(o.a||'l')+'"/>'+
+'<a:r><a:rPr lang="ja-JP" altLang="en-US" sz="'+((o.s||11)*100)+'" b="'+(o.b?'1':'0')+'" dirty="0">'+
+'<a:solidFill><a:srgbClr val="'+(o.c||'000000')+'"/></a:solidFill>'+
+'<a:latin typeface="+mn-lt"/>'+
+'</a:rPr><a:t>'+_x(txt)+'</a:t></a:r></a:p>'+
+'</p:txBody></p:sp>';
+}
+
+function pRect(id,x,y,w,h,fill){
+  return '<p:sp>'+
+'<p:nvSpPr><p:cNvPr id="'+id+'" name="r'+id+'"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>'+
+'<p:spPr><a:xfrm><a:off x="'+x+'" y="'+y+'"/><a:ext cx="'+w+'" cy="'+h+'"/></a:xfrm>'+
+'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>'+
+'<a:solidFill><a:srgbClr val="'+fill+'"/></a:solidFill>'+
+'<a:ln><a:noFill/></a:ln></p:spPr>'+
+'<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:sp>';
+}
+
+function pImg(id,rId,x,y,w,h){
+  return '<p:pic>'+
+'<p:nvPicPr><p:cNvPr id="'+id+'" name="i'+id+'"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>'+
+'<p:blipFill><a:blip r:embed="'+rId+'"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>'+
+'<p:spPr><a:xfrm><a:off x="'+x+'" y="'+y+'"/><a:ext cx="'+w+'" cy="'+h+'"/></a:xfrm>'+
+'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>';
+}
+
+function generatePptx(meta, sups){
+  if(typeof JSZip==='undefined') throw new Error('ZIP初期化エラー');
+  var zip = new JSZip();
+  var today = new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'});
+  var nSld = 2 + sups.length;
+  var imgN = 0, spId = 10;
+
+  // Content_Types
+  var ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+'<Default Extension="xml" ContentType="application/xml"/>'+
+'<Default Extension="jpg" ContentType="image/jpeg"/>'+
+'<Default Extension="jpeg" ContentType="image/jpeg"/>'+
+'<Default Extension="png" ContentType="image/png"/>'+
+'<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>'+
+'<Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>'+
+'<Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>'+
+'<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>';
+  for(var i=1;i<=nSld;i++) ct+='<Override PartName="/ppt/slides/slide'+i+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>';
+  ct+='</Types>';
+  zip.file('[Content_Types].xml', ct);
+
+  zip.file('_rels/.rels',
+'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>'+
+'</Relationships>');
+
+  // presentation
+  var sldIds=''; for(var i=1;i<=nSld;i++) sldIds+='<p:sldId id="'+(255+i)+'" r:id="rS'+i+'"/>';
+  zip.file('ppt/presentation.xml',
+'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+'<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '+
+'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '+
+'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" saveSubsetFonts="1">'+
+'<p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rIdSM"/></p:sldMasterIdLst>'+
+'<p:sldIdLst>'+sldIds+'</p:sldIdLst>'+
+'<p:sldSz cx="'+PW+'" cy="'+PH+'" type="screen16x9"/>'+
+'<p:notesSz cx="6858000" cy="9144000"/></p:presentation>');
+
+  var presR='<Relationship Id="rIdSM" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>';
+  for(var i=1;i<=nSld;i++) presR+='<Relationship Id="rS'+i+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+i+'.xml"/>';
+  zip.file('ppt/_rels/presentation.xml.rels',
+'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+presR+'</Relationships>');
+
+  // theme
+  zip.file('ppt/theme/theme1.xml',
+'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+'<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Theme1">'+
+'<a:themeElements>'+
+'<a:clrScheme name="Office">'+
+'<a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1>'+
+'<a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1>'+
+'<a:dk2><a:srgbClr val="44546A"/></a:dk2><a:lt2><a:srgbClr val="E7E6E6"/></a:lt2>'+
+'<a:accent1><a:srgbClr val="4472C4"/></a:accent1><a:accent2><a:srgbClr val="ED7D31"/></a:accent2>'+
+'<a:accent3><a:srgbClr val="A9D18E"/></a:accent3><a:accent4><a:srgbClr val="FFC000"/></a:accent4>'+
+'<a:accent5><a:srgbClr val="5B9BD5"/></a:accent5><a:accent6><a:srgbClr val="70AD47"/></a:accent6>'+
+'<a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink>'+
+'</a:clrScheme>'+
+'<a:fontScheme name="Office">'+
+'<a:majorFont><a:latin typeface="Calibri Light"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont>'+
+'<a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont>'+
+'</a:fontScheme>'+
+'<a:fmtScheme name="Office">'+
+'<a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst>'+
+'<a:lnStyleLst>'+
+'<a:ln w="6350" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln>'+
+'<a:ln w="12700" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln>'+
+'<a:ln w="19050" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln>'+
+'</a:lnStyleLst>'+
+'<a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst>'+
+'<a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst>'+
+'</a:fmtScheme></a:themeElements></a:theme>');
+
+  // slideMaster
+  zip.file('ppt/slideMasters/slideMaster1.xml',
+'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+'<p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '+
+'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '+
+'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'+
+'<p:cSld><p:spTree>'+
+'<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'+
+'<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'+
+'</p:spTree></p:cSld>'+
+'<p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>'+
+'<p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst>'+
+'<p:txStyles>'+
+'<p:titleStyle><a:lvl1pPr><a:defRPr/></a:lvl1pPr></p:titleStyle>'+
+'<p:bodyStyle><a:lvl1pPr><a:defRPr/></a:lvl1pPr></p:bodyStyle>'+
+'<p:otherStyle><a:lvl1pPr><a:defRPr/></a:lvl1pPr></p:otherStyle>'+
+'</p:txStyles></p:sldMaster>');
+  zip.file('ppt/slideMasters/_rels/slideMaster1.xml.rels',
+'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>'+
+'<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/>'+
+'</Relationships>');
+
+  // slideLayout
+  zip.file('ppt/slideLayouts/slideLayout1.xml',
+'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+'<p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '+
+'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '+
+'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="blank" preserve="1">'+
+'<p:cSld name="Blank"><p:spTree>'+
+'<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'+
+'<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'+
+'</p:spTree></p:cSld>'+
+'<p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>');
+  zip.file('ppt/slideLayouts/_rels/slideLayout1.xml.rels',
+'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/>'+
+'</Relationships>');
+
+  // ===== スライド1: 表紙 =====
+  var s1=[]; var i1=spId;
+  s1.push(pRect(i1++,0,0,PW,PH,'1A2332'));
+  s1.push(pRect(i1++,0,Math.round(PH*.72),PW,12,'F0A020'));
+  s1.push(pTx(i1++,Math.round(PW*.05),Math.round(PH*.1),Math.round(PW*.9),Math.round(PH*.13),'展示会視察報告書',{s:12,c:'6A7D96',a:'ctr'}));
+  s1.push(pTx(i1++,Math.round(PW*.05),Math.round(PH*.26),Math.round(PW*.9),Math.round(PH*.2),meta.name,{s:24,c:'F0A020',b:true,a:'ctr'}));
+  var ml=[meta.date&&'開催日：'+meta.date,meta.venue&&'会場：'+meta.venue,meta.reporter&&'担当者：'+meta.reporter,'作成日：'+today].filter(Boolean).join('   ');
+  s1.push(pTx(i1++,Math.round(PW*.05),Math.round(PH*.5),Math.round(PW*.9),Math.round(PH*.12),ml,{s:11,c:'AAB5C5',a:'ctr'}));
+  if(meta.overall) s1.push(pTx(i1++,Math.round(PW*.1),Math.round(PH*.65),Math.round(PW*.8),Math.round(PH*.1),meta.overall,{s:10,c:'6A7D96',a:'ctr'}));
+  spId=i1;
+  zip.file('ppt/slides/slide1.xml', pSlide(s1,'1A2332'));
+  zip.file('ppt/slides/_rels/slide1.xml.rels', pRels([]));
+
+  // ===== スライド2: 一覧 =====
+  var s2=[]; var i2=spId;
+  s2.push(pRect(i2++,0,0,PW,Math.round(PH*.16),'1A2332'));
+  s2.push(pTx(i2++,Math.round(PW*.03),Math.round(PH*.02),Math.round(PW*.65),Math.round(PH*.12),'サプライヤ一覧',{s:18,c:'FFFFFF',b:true}));
+  s2.push(pTx(i2++,Math.round(PW*.68),Math.round(PH*.04),Math.round(PW*.28),Math.round(PH*.09),meta.name+'  '+sups.length+'社',{s:10,c:'6A7D96',a:'r'}));
+  var rh=Math.min(Math.round((PH*.80)/(sups.length+1)), Math.round(PH*.1));
+  var cx=[.02,.08,.27,.49,.71,.88], cw=[.06,.18,.21,.21,.16,.10];
+  var hdrs=['No.','サプライヤ名','出展品目','特色・強み','メモ','評価'];
+  var hy=Math.round(PH*.18);
+  s2.push(pRect(i2++,0,hy,PW,rh,'2A3748'));
+  hdrs.forEach(function(h,ci){ s2.push(pTx(i2++,Math.round(PW*cx[ci]),hy+4,Math.round(PW*cw[ci]),rh,h,{s:9,c:'E8EDF4',b:true,a:'ctr'})); });
+  sups.forEach(function(s,ri){
+    var ry=hy+rh*(ri+1);
+    s2.push(pRect(i2++,0,ry,PW,rh,ri%2===0?'F0F4F8':'FFFFFF'));
+    var vals=[String(ri+1).padStart(2,'0'),s.name||'',s.items||'',s.features||'',s.note||'',s.rating?'★'.repeat(s.rating):''];
+    vals.forEach(function(v,ci){
+      s2.push(pTx(i2++,Math.round(PW*cx[ci]),ry+4,Math.round(PW*cw[ci]),rh,v,{s:8,c:ci===5?'F0A020':'222222',a:ci===0||ci===5?'ctr':'l'}));
+    });
+  });
+  spId=i2;
+  zip.file('ppt/slides/slide2.xml', pSlide(s2,'FFFFFF'));
+  zip.file('ppt/slides/_rels/slide2.xml.rels', pRels([]));
+
+  // ===== スライド3〜: 各社 =====
+  sups.forEach(function(s,si){
+    var shapes=[], iRels=[], i=spId;
+    var photos=(s.photos||[]).slice(0,4);
+    var hasP=photos.length>0;
+    var tw=hasP?Math.round(PW*.52):Math.round(PW*.92);
+    var lx=Math.round(PW*.04);
+
+    shapes.push(pRect(i++,0,0,PW,Math.round(PH*.17),'1A2332'));
+    shapes.push(pRect(i++,0,Math.round(PH*.17),PW,10,'F0A020'));
+    shapes.push(pTx(i++,Math.round(PW*.02),Math.round(PH*.02),Math.round(PW*.08),Math.round(PH*.13),String(si+1).padStart(2,'0'),{s:20,c:'F0A020',b:true,a:'ctr'}));
+    shapes.push(pTx(i++,Math.round(PW*.11),Math.round(PH*.03),Math.round(PW*.68),Math.round(PH*.11),s.name||'（未入力）',{s:16,c:'FFFFFF',b:true}));
+    if(s.rating) shapes.push(pTx(i++,Math.round(PW*.82),Math.round(PH*.04),Math.round(PW*.15),Math.round(PH*.09),'★'.repeat(s.rating),{s:13,c:'F0A020',a:'r'}));
+
+    var flds=[
+      {l:'出展品目',v:s.items||'―',y:.20},
+      {l:'特色・強み',v:s.features||'―',y:.42},
+      {l:'メモ・連絡先',v:s.note||'―',y:.64}
+    ];
+    flds.forEach(function(f){
+      var fy=Math.round(PH*f.y);
+      shapes.push(pTx(i++,lx,fy,tw,Math.round(PH*.06),f.l,{s:8,c:'8A9AB0',b:true}));
+      shapes.push(pTx(i++,lx,fy+Math.round(PH*.065),tw,Math.round(PH*.15),f.v,{s:11,c:'111111'}));
+    });
+    shapes.push(pTx(i++,lx,Math.round(PH*.93),Math.round(PW*.92),Math.round(PH*.05),meta.name+'  |  EXPO REPORT',{s:8,c:'AAAAAA'}));
+
+    if(hasP){
+      var px=Math.round(PW*.57);
+      var cols=photos.length>=2?2:1;
+      var rows=Math.ceil(photos.length/cols);
+      var pw=Math.round((PW*.40-(cols-1)*36000)/cols);
+      var ph=Math.round((PH*.74-(rows-1)*36000)/rows);
+      photos.forEach(function(src,pi){
+        imgN++;
+        var ext=src.indexOf('image/png')>=0?'png':'jpg';
+        var fn='media/img'+imgN+'.'+ext;
+        zip.file('ppt/'+fn, _b(src), {base64:true});
+        var rId='rI'+imgN;
+        iRels.push({id:rId,t:'../'+fn});
+        var col=pi%cols, row=Math.floor(pi/cols);
+        shapes.push(pImg(i++,rId, px+col*(pw+36000), Math.round(PH*.19)+row*(ph+36000), pw, ph));
+      });
+    }
+    spId=i;
+    zip.file('ppt/slides/slide'+(si+3)+'.xml', pSlide(shapes,'FFFFFF'));
+    zip.file('ppt/slides/_rels/slide'+(si+3)+'.xml.rels', pRels(iRels));
+  });
+
+  return zip;
+}
+
+function _runPptx(zip, fname){
+  zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.presentationml.presentation',compression:'DEFLATE',compressionOptions:{level:6}})
+    .then(function(blob){
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a'); a.href=url; a.download=fname;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){URL.revokeObjectURL(url);},2000);
+      toast('PPTXをダウンロードしました！');
+    }).catch(function(e){ toast('エラー：'+e.message,'var(--danger)'); });
+}
+
+function doPptx(){
+  var m=getMeta();
+  if(!suppliers.length){ toast('サプライヤを追加してください','var(--danger)'); return; }
+  toast('PowerPointを生成中…','#c43e1c');
+  try{ _runPptx(generatePptx(m,suppliers), m.name+'.pptx'); }
+  catch(e){ toast('生成エラー：'+e.message,'var(--danger)'); }
+}
+function pptxArchive(idx){
+  var rep=archive[idx];
+  toast('PowerPointを生成中…','#c43e1c');
+  try{ _runPptx(generatePptx(rep.meta,rep.suppliers), rep.meta.name+'.pptx'); }
+  catch(e){ toast('生成エラー：'+e.message,'var(--danger)'); }
+}
+
+// ===== MAIL =====
+function buildBody(){
+  var m=getMeta(), b='【展示会視察報告書】\n'+'━'.repeat(20)+'\n';
+  if(m.name)     b+='展示会名：'+m.name+'\n';
+  if(m.date)     b+='開催日　：'+m.date+'\n';
+  if(m.venue)    b+='会　場　：'+m.venue+'\n';
+  if(m.reporter) b+='担当者　：'+m.reporter+'\n';
+  b+='━'.repeat(20)+'\n\n';
+  if(m.overall)  b+='■ 総評\n'+m.overall+'\n\n';
+  b+='■ 視察サプライヤ（'+suppliers.length+'社）\n\n';
+  suppliers.forEach(function(s,i){
+    var stars=s.rating?'★'.repeat(s.rating)+'☆'.repeat(5-s.rating):'未評価';
+    b+='─'.repeat(20)+'\n【'+String(i+1).padStart(2,'0')+'】'+(s.name||'（未入力）')+'　'+stars+'\n';
+    if(s.items)    b+='品目：'+s.items+'\n';
+    if(s.features) b+='特色：'+s.features+'\n';
+    if(s.note)     b+='メモ：'+s.note+'\n';
+    if(s.photos.length) b+='📷 画像'+s.photos.length+'枚\n';
+    b+='\n';
+  });
+  b+='━'.repeat(20)+'\n※ EXPO REPORTアプリより送信';
+  return b;
+}
+function renderMail(){ document.getElementById('mailBody').value=buildBody(); }
+function copyMail(){
+  var body=buildBody();
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(body).then(function(){toast('本文をコピーしました！');}).catch(function(){fbCopy(body);});
+  } else { fbCopy(body); }
+}
+function fbCopy(text){
+  var ta=document.createElement('textarea');
+  ta.value=text; ta.style.cssText='position:fixed;opacity:0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try{document.execCommand('copy');toast('本文をコピーしました！');}
+  catch(e){toast('コピーできませんでした','var(--danger)');}
+  document.body.removeChild(ta);
+}
+
+// ===== INIT =====
+openDB(function() {
+  loadDB(function(d) {
+    if (d) {
+      suppliers = d.suppliers || [];
+      archive   = d.archive   || [];
+      if (d.meta) setMeta(d.meta);
+    } else {
+      suppliers = [
+        {id:1,name:'株式会社山田精機',items:'CNC旋削加工品、精密シャフト、フランジ部品',features:'公差±0.003mm対応、SUS・チタン加工実績豊富',note:'営業担当：鈴木様 / 見積依頼予定',rating:5,photos:[]},
+        {id:2,name:'東洋鋳造工業',items:'アルミダイカスト、亜鉛合金鋳造品',features:'自動車・産機向け量産実績。型費低減提案あり',note:'月産50万個規模対応可',rating:4,photos:[]},
+        {id:3,name:'精和テクノ株式会社',items:'マシニングセンタ加工品、複合加工',features:'5軸加工・難削材対応、医療部品認証取得',note:'次回フォローアップ要',rating:4,photos:[]}
+      ];
+    }
+    updBadge(); renderList(); renderPhotos();
+  });
+});
+</script>
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").then(function(r){
+    console.log("SW registered");
+  }).catch(function(e){
+    console.log("SW error:", e);
+  });
+}
+</script>
+</body>
+</html>
