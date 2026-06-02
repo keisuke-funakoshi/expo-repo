@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>展示会視察レポート</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f1318">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EXPO REPORT">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <script>
 // ===== 自作ZIPライブラリ (CDN不要・オフライン動作) =====
@@ -869,43 +875,16 @@ function buildPrintHtml(meta, sups){
   '<div class="p-footer">EXPO REPORT &nbsp;|&nbsp; '+today+' &nbsp;|&nbsp; '+meta.name+'</div>';
 }
 
-function openPrintWindow(html){
-  var appStyles=document.querySelectorAll('style,link[rel="stylesheet"]');
-  var disabled=[];
-  appStyles.forEach(function(el){
-    if(el.id!=='printForceStyle'){
-      el.setAttribute('media','none-disabled');
-      disabled.push(el);
-    }
-  });
-  var old=document.getElementById('printForceStyle');
-  if(old)old.parentNode.removeChild(old);
-  var s=document.createElement('style');
-  s.id='printForceStyle';
-  s.textContent=
-    'html,body{background:#ffffff!important;color:#1a2332!important;color-scheme:light!important;font-family:sans-serif!important;}'+
-    'body>*{display:none!important;}'+
-    '#printArea{display:block!important;background:#ffffff!important;color:#1a2332!important;}';
-  document.head.appendChild(s);
-  var pa=document.getElementById('printArea');
-  pa.innerHTML=html;
-  setTimeout(function(){
-    window.print();
-    setTimeout(function(){
-      disabled.forEach(function(el){el.setAttribute('media','all');});
-      var st=document.getElementById('printForceStyle');
-      if(st)st.parentNode.removeChild(st);
-      pa.innerHTML='';
-    },2000);
-  },800);
-}
-
 function doPrint(){
-  openPrintWindow(buildPrintHtml(getMeta(),suppliers));
+  var pa=document.getElementById('printArea');
+  pa.innerHTML=buildPrintHtml(getMeta(),suppliers);
+  window.print();
 }
 function printArchive(idx){
   var rep=archive[idx];
-  openPrintWindow(buildPrintHtml(rep.meta,rep.suppliers));
+  var pa=document.getElementById('printArea');
+  pa.innerHTML=buildPrintHtml(rep.meta,rep.suppliers);
+  window.print();
 }
 
 // ===== EXCEL =====
@@ -1338,6 +1317,15 @@ openDB(function() {
     updBadge(); renderList(); renderPhotos();
   });
 });
+</script>
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").then(function(r){
+    console.log("SW registered");
+  }).catch(function(e){
+    console.log("SW error:", e);
+  });
+}
 </script>
 </body>
 </html>
