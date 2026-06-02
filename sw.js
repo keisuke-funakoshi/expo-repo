@@ -1,5 +1,5 @@
 // EXPO REPORT Service Worker
-var CACHE_NAME = 'expo-report-v1';
+var CACHE_NAME = 'expo-report-v2'; // ← v2に更新（キャッシュ強制リセット）
 var ASSETS = [
   './',
   './index.html',
@@ -45,7 +45,6 @@ self.addEventListener('fetch', function(e) {
         });
         return res;
       }).catch(function() {
-        // オフライン時はindex.htmlを返す
         return caches.match('./index.html');
       });
     })
