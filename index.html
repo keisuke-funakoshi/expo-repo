@@ -868,34 +868,14 @@ function buildPrintHtml(meta, sups){
 }
 
 function openPrintWindow(html){
-  var appStyles=document.querySelectorAll('style,link[rel="stylesheet"]');
-  var disabled=[];
-  appStyles.forEach(function(el){
-    if(el.id!=='printForceStyle'){
-      el.setAttribute('media','none-disabled');
-      disabled.push(el);
-    }
-  });
-  var old=document.getElementById('printForceStyle');
-  if(old)old.parentNode.removeChild(old);
-  var s=document.createElement('style');
-  s.id='printForceStyle';
-  s.textContent=
-    'html,body{background:#ffffff!important;color:#1a2332!important;color-scheme:light!important;font-family:sans-serif!important;}'+
-    'body>*{display:none!important;}'+
-    '#printArea{display:block!important;background:#ffffff!important;color:#1a2332!important;}';
-  document.head.appendChild(s);
   var pa=document.getElementById('printArea');
   pa.innerHTML=html;
   setTimeout(function(){
     window.print();
     setTimeout(function(){
-      disabled.forEach(function(el){el.setAttribute('media','all');});
-      var st=document.getElementById('printForceStyle');
-      if(st)st.parentNode.removeChild(st);
       pa.innerHTML='';
     },2000);
-  },800);
+  },600);
 }
 
 function doPrint(){
