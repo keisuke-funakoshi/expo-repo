@@ -690,6 +690,8 @@ function save(){
 function goBack(){ save(); currentId=null; showTab('home'); }
 function deleteCurrent(){
   if(!currentId) return;
+  var s=suppliers.find(function(x){return x.id===currentId;});
+  if(!confirm('「'+(s&&s.name||'このサプライヤ')+'」を削除しますか？'))return;
   suppliers = suppliers.filter(function(s){return s.id!==currentId;});
   currentId=null; updBadge(); saveLS();
   toast('削除しました','var(--danger)'); showTab('home');
@@ -827,11 +829,15 @@ function renderArchive(){
         '<button class="big-btn" style="flex:1;padding:9px;font-size:12px" onclick="printArchive('+realIdx+')">🖨 PDF</button>'+
         '<button class="big-btn blue" style="flex:1;padding:9px;font-size:12px" onclick="excelArchive('+realIdx+')">📊 CSV</button>'+
         '<button class="big-btn" style="flex:1;padding:9px;font-size:12px;background:#c43e1c" onclick="pptxArchive('+realIdx+')">📑 PPTX</button>'+
+        '<button class="big-btn" style="flex:1;padding:9px;font-size:12px;background:linear-gradient(135deg,#7c3aed,#4f1db5)" onclick="doZipPhotos(archive['+realIdx+'].suppliers,archive['+realIdx+'].meta&&archive['+realIdx+'].meta.name)">🗜 写真</button>'+
       '</div>';
     list.appendChild(div);
   });
 }
-function deleteArchive(idx){ archive.splice(idx,1); saveLS(); renderArchive(); toast('削除しました','var(--danger)'); }
+function deleteArchive(idx){
+  if(!confirm('「'+(archive[idx]&&archive[idx].meta&&archive[idx].meta.name||'この報告書')+'」を削除しますか？'))return;
+  archive.splice(idx,1); saveLS(); renderArchive(); toast('削除しました','var(--danger)');
+}
 
 // ===== 再編集 =====
 function editArchive(idx){
@@ -1044,11 +1050,11 @@ function doRestore(input){
   input.value='';
 }
 
-function doZipPhotos(){
-  var m=getMeta();
-  var name=m.name||'展示会レポート';
+function doZipPhotos(supList, label){
+  var sups = supList || suppliers;
+  var name = label || getMeta().name || '展示会レポート';
   var entries=[];
-  suppliers.forEach(function(s){
+  sups.forEach(function(s){
     (s.photos||[]).forEach(function(src,pi){
       var ext=src.indexOf('image/png')>=0?'png':'jpg';
       var sname=(s.name||'サプライヤ').slice(0,20).replace(/[\/\\:*?"<>|]/g,'_');
