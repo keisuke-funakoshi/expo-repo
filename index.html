@@ -395,6 +395,32 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans
       <div class="sec-hdr"><span class="dot"></span>特色・強み</div>
       <textarea class="fta" id="dFeatures" placeholder="例：公差±0.003mm対応、難削材加工実績…" rows="3" oninput="save()"></textarea>
     </div>
+    <!-- 強み詳細（追加項目） -->
+    <div class="card">
+      <div class="sec-hdr"><span class="dot"></span>強み詳細</div>
+      <div style="padding:8px 14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--muted);min-width:72px">技術力</span>
+          <input class="fta" id="dStr1" type="text" placeholder="例：5軸加工・超精密研削…" style="padding:6px 0;min-height:unset" oninput="save()">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--muted);min-width:72px">対応材質</span>
+          <input class="fta" id="dStr2" type="text" placeholder="例：SUS・チタン・CFRP…" style="padding:6px 0;min-height:unset" oninput="save()">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--muted);min-width:72px">納期・ロット</span>
+          <input class="fta" id="dStr3" type="text" placeholder="例：小ロット対応・短納期…" style="padding:6px 0;min-height:unset" oninput="save()">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--muted);min-width:72px">認証・規格</span>
+          <input class="fta" id="dStr4" type="text" placeholder="例：ISO9001・IATF16949…" style="padding:6px 0;min-height:unset" oninput="save()">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--muted);min-width:72px">価格競争力</span>
+          <input class="fta" id="dStr5" type="text" placeholder="例：コスト削減提案あり…" style="padding:6px 0;min-height:unset" oninput="save()">
+        </div>
+      </div>
+    </div>
     <div class="card" style="padding:14px;display:flex;align-items:center;gap:14px">
       <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);white-space:nowrap">評価</span>
       <div style="display:flex;gap:6px">
@@ -642,7 +668,7 @@ function renderList() {
       return '<span class="s-tag">'+t.slice(0,16)+'</span>';
     }).join('');
     var thumb = s.photos.length
-      ? '<div class="s-thumb"><img src="'+s.photos[0]+'"></div>'
+      ? '<div class="s-thumb"><img src="'+getPhotoSrc(s.photos[0])+'"></div>'
       : '<div class="s-ph">🔩</div>';
     div.innerHTML =
       '<span class="s-num">'+String(i+1).padStart(2,'0')+'</span>'+
@@ -673,6 +699,11 @@ function openDetail(id){
   document.getElementById('dItems').value        = s.items;
   document.getElementById('dFeatures').value     = s.features;
   document.getElementById('dNote').value         = s.note;
+  document.getElementById('dStr1').value         = s.str1||'';
+  document.getElementById('dStr2').value         = s.str2||'';
+  document.getElementById('dStr3').value         = s.str3||'';
+  document.getElementById('dStr4').value         = s.str4||'';
+  document.getElementById('dStr5').value         = s.str5||'';
   renderStars(s.rating);
   applyImgSize(imgSize);
   renderPhotos();
@@ -685,6 +716,11 @@ function save(){
   s.items    = document.getElementById('dItems').value;
   s.features = document.getElementById('dFeatures').value;
   s.note     = document.getElementById('dNote').value;
+  s.str1     = document.getElementById('dStr1').value;
+  s.str2     = document.getElementById('dStr2').value;
+  s.str3     = document.getElementById('dStr3').value;
+  s.str4     = document.getElementById('dStr4').value;
+  s.str5     = document.getElementById('dStr5').value;
   saveLS();
 }
 function goBack(){ save(); currentId=null; showTab('home'); }
@@ -751,12 +787,13 @@ function handlePhoto(input) {
   var files = Array.from(input.files);
   if (!files.length) return;
   var loaded = 0;
-  // 圧縮設定：最大1200px、JPEG品質0.75
   var MAX_W = 1200, MAX_H = 1200, QUALITY = 0.75;
   toast('画像を圧縮中…', '#3a7bd5');
   files.forEach(function(file) {
     compressImage(file, MAX_W, MAX_H, QUALITY, function(dataUrl) {
-      s.photos.push(dataUrl);
+      // 新形式：{src, comment} オブジェクトで保存
+      // 旧形式（文字列）との互換性を保つ
+      s.photos.push({src:dataUrl, comment:''});
       loaded++;
       if (loaded === files.length) {
         saveLS(function() { renderPhotos(); toast('画像を追加しました（圧縮済）'); });
@@ -767,21 +804,49 @@ function handlePhoto(input) {
 }
 function removePhoto(idx){
   if(!currentId) return;
+  if(!confirm('この写真を削除しますか？'))return;
   getS(currentId).photos.splice(idx,1); saveLS(); renderPhotos();
 }
+function updatePhotoComment(idx, val){
+  if(!currentId) return;
+  var s=getS(currentId);
+  if(!s||!s.photos[idx])return;
+  s.photos[idx].comment=val;
+  saveLS();
+}
+function getPhotoSrc(p){ return typeof p==='string'?p:p.src; }
+function getPhotoComment(p){ return typeof p==='string'?'':p.comment||''; }
+
 function renderPhotos(){
   var s=getS(currentId), grid=document.getElementById('imgGrid'); if(!grid) return;
   grid.innerHTML='';
-  if(s){ s.photos.forEach(function(src,i){
-    var w=document.createElement('div'); w.className='img-wrap';
-    w.innerHTML='<img src="'+src+'"><button class="img-del" onclick="removePhoto('+i+')">✕</button>';
-    grid.appendChild(w);
-  }); }
-  // ライブラリボタン（capture なし）
+  grid.className='img-grid '+(imgSize||'sm');
+  if(s){
+    s.photos.forEach(function(p,i){
+      var src=getPhotoSrc(p);
+      var comment=getPhotoComment(p);
+      var wrap=document.createElement('div');
+      wrap.style.cssText='position:relative;border-radius:8px;overflow:hidden;background:var(--tag);display:flex;flex-direction:column;';
+      // 画像
+      var imgDiv=document.createElement('div');
+      imgDiv.style.cssText='position:relative;aspect-ratio:1;';
+      imgDiv.innerHTML='<img src="'+src+'" style="width:100%;height:100%;object-fit:cover;display:block;">'+
+        '<button class="img-del" onclick="removePhoto('+i+')">✕</button>';
+      // コメント入力
+      var inp=document.createElement('input');
+      inp.type='text';
+      inp.placeholder='コメント…';
+      inp.value=comment;
+      inp.style.cssText='width:100%;background:rgba(0,0,0,.5);border:none;border-top:1px solid rgba(255,255,255,.1);color:#fff;font-size:10px;padding:4px 6px;outline:none;font-family:\'Noto Sans JP\',sans-serif;';
+      inp.addEventListener('input',function(){updatePhotoComment(i,inp.value);});
+      wrap.appendChild(imgDiv);
+      wrap.appendChild(inp);
+      grid.appendChild(wrap);
+    });
+  }
   var lblLib=document.createElement('label'); lblLib.className='add-photo';
   lblLib.innerHTML='<span style="font-size:22px">🖼</span><span>ライブラリ</span><input type="file" accept="image/*" multiple onchange="handlePhoto(this)">';
   grid.appendChild(lblLib);
-  // カメラボタン（capture あり）
   var lblCam=document.createElement('label'); lblCam.className='add-photo';
   lblCam.innerHTML='<span style="font-size:22px">📷</span><span>カメラ</span><input type="file" accept="image/*" capture="environment" onchange="handlePhoto(this)">';
   grid.appendChild(lblCam);
@@ -919,7 +984,12 @@ function buildPrintHtml(meta, sups){
       h+='<table style="width:100%;border-collapse:collapse;border-top:1px solid #dde3ec;padding:6px;">';
       h+='<tr>';
       s.photos.slice(0,4).forEach(function(p){
-        h+='<td style="width:25%;padding:4px;"><img src="'+p+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:3px;border:1px solid #dde3ec;display:block;"></td>';
+        var src=getPhotoSrc(p);
+        var comment=getPhotoComment(p);
+        h+='<td style="width:25%;padding:4px;vertical-align:top;">';
+        h+='<img src="'+src+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:3px;border:1px solid #dde3ec;display:block;">';
+        if(comment)h+='<div style="font-size:8px;color:#555;margin-top:2px;text-align:center;">'+escH(comment)+'</div>';
+        h+='</td>';
       });
       h+='</tr></table>';
     }
@@ -1055,7 +1125,8 @@ function doZipPhotos(supList, label){
   var name = label || getMeta().name || '展示会レポート';
   var entries=[];
   sups.forEach(function(s){
-    (s.photos||[]).forEach(function(src,pi){
+    (s.photos||[]).forEach(function(p,pi){
+      var src=getPhotoSrc(p);
       var ext=src.indexOf('image/png')>=0?'png':'jpg';
       var sname=(s.name||'サプライヤ').slice(0,20).replace(/[\/\\:*?"<>|]/g,'_');
       entries.push({path:sname+'/'+(pi+1)+'.'+ext,src:src});
