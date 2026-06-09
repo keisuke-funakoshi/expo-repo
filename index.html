@@ -327,8 +327,8 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans
   .p-cell:last-child{border-right:none;}
   .p-clbl{font-size:7px;letter-spacing:1px;text-transform:uppercase;color:#8a9ab0;margin-bottom:2px;}
   .p-cval{font-size:10px;line-height:1.5;}
-  .p-imgs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 10px;border-top:1px solid #eee;}
-  .p-imgs img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px;border:1px solid #dde3ec;display:block;}
+  .p-imgs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 10px;border-top:1px solid #eee;page-break-inside:avoid;break-inside:avoid;}
+  .p-imgs img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px;border:1px solid #dde3ec;display:block;max-height:160px;}
   .p-footer{text-align:center;font-size:9px;color:#aaa;padding:10px;border-top:1px solid #eee;margin-top:6px;}
 }
 </style>
@@ -981,13 +981,13 @@ function buildPrintHtml(meta, sups){
     h+='</tr></table>';
     // 写真
     if(s.photos&&s.photos.length){
-      h+='<table style="width:100%;border-collapse:collapse;border-top:1px solid #dde3ec;padding:6px;">';
+      h+='<table style="width:100%;border-collapse:collapse;border-top:1px solid #dde3ec;padding:6px;page-break-inside:avoid;break-inside:avoid;">';
       h+='<tr>';
       s.photos.slice(0,4).forEach(function(p){
         var src=getPhotoSrc(p);
         var comment=getPhotoComment(p);
         h+='<td style="width:25%;padding:4px;vertical-align:top;">';
-        h+='<img src="'+src+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:3px;border:1px solid #dde3ec;display:block;">';
+        h+='<img src="'+src+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:3px;border:1px solid #dde3ec;display:block;max-height:140px;">';
         if(comment)h+='<div style="font-size:8px;color:#555;margin-top:2px;text-align:center;">'+escH(comment)+'</div>';
         h+='</td>';
       });
