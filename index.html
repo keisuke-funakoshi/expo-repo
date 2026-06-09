@@ -1128,8 +1128,7 @@ function doZipPhotos(supList, label){
     (s.photos||[]).forEach(function(p,pi){
       var src=getPhotoSrc(p);
       var ext=src.indexOf('image/png')>=0?'png':'jpg';
-      var sname=(s.name||'サプライヤ').slice(0,20).replace(/[\/\\:*?"<>|]/g,'_');
-      entries.push({path:sname+'/'+(pi+1)+'.'+ext,src:src});
+      entries.push({path:'supplier'+String(sups.indexOf(s)+1).padStart(2,'0')+'/'+(pi+1)+'.'+ext,src:src});
     });
   });
   if(!entries.length){toast('写真がありません','var(--danger)');return;}
