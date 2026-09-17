@@ -2,16 +2,14 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="EXPO REPORT">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0f1318">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
-<link rel="apple-touch-startup-image" href="icon-512.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>展示会視察レポート</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f1318">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EXPO REPORT">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <script>
 // ===== 自作ZIPライブラリ (CDN不要・オフライン動作) =====
@@ -327,8 +325,8 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans
   .p-cell:last-child{border-right:none;}
   .p-clbl{font-size:7px;letter-spacing:1px;text-transform:uppercase;color:#8a9ab0;margin-bottom:2px;}
   .p-cval{font-size:10px;line-height:1.5;}
-  .p-imgs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 10px;border-top:1px solid #eee;page-break-inside:avoid;break-inside:avoid;}
-  .p-imgs img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px;border:1px solid #dde3ec;display:block;max-height:160px;}
+  .p-imgs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 10px;border-top:1px solid #eee;}
+  .p-imgs img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px;border:1px solid #dde3ec;display:block;}
   .p-footer{text-align:center;font-size:9px;color:#aaa;padding:10px;border-top:1px solid #eee;margin-top:6px;}
 }
 </style>
@@ -395,32 +393,6 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans
       <div class="sec-hdr"><span class="dot"></span>特色・強み</div>
       <textarea class="fta" id="dFeatures" placeholder="例：公差±0.003mm対応、難削材加工実績…" rows="3" oninput="save()"></textarea>
     </div>
-    <!-- 強み詳細（追加項目） -->
-    <div class="card">
-      <div class="sec-hdr"><span class="dot"></span>強み詳細</div>
-      <div style="padding:8px 14px;display:flex;flex-direction:column;gap:8px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:11px;color:var(--muted);min-width:72px">技術力</span>
-          <input class="fta" id="dStr1" type="text" placeholder="例：5軸加工・超精密研削…" style="padding:6px 0;min-height:unset" oninput="save()">
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:11px;color:var(--muted);min-width:72px">対応材質</span>
-          <input class="fta" id="dStr2" type="text" placeholder="例：SUS・チタン・CFRP…" style="padding:6px 0;min-height:unset" oninput="save()">
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:11px;color:var(--muted);min-width:72px">納期・ロット</span>
-          <input class="fta" id="dStr3" type="text" placeholder="例：小ロット対応・短納期…" style="padding:6px 0;min-height:unset" oninput="save()">
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:11px;color:var(--muted);min-width:72px">認証・規格</span>
-          <input class="fta" id="dStr4" type="text" placeholder="例：ISO9001・IATF16949…" style="padding:6px 0;min-height:unset" oninput="save()">
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:11px;color:var(--muted);min-width:72px">価格競争力</span>
-          <input class="fta" id="dStr5" type="text" placeholder="例：コスト削減提案あり…" style="padding:6px 0;min-height:unset" oninput="save()">
-        </div>
-      </div>
-    </div>
     <div class="card" style="padding:14px;display:flex;align-items:center;gap:14px">
       <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);white-space:nowrap">評価</span>
       <div style="display:flex;gap:6px">
@@ -461,18 +433,6 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans
     </div>
     <button class="big-btn" style="margin-bottom:8px" onclick="doPrint()">🖨 &nbsp;PDF印刷</button>
     <button class="big-btn blue" style="margin-bottom:8px" onclick="doExcel()">📊 &nbsp;Excel出力（CSV）</button>
-    <button class="big-btn" style="margin-bottom:8px;background:linear-gradient(135deg,#7c3aed,#4f1db5)" onclick="doZipPhotos()">🗜 &nbsp;写真を一括ZIPダウンロード</button>
-    <div class="card" style="margin-bottom:8px;overflow:hidden">
-      <div class="card-hdr" style="background:var(--card2);padding:9px 14px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)">💾 データバックアップ・復元</div>
-      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px">
-        <div style="font-size:11px;color:var(--muted);line-height:1.7">写真を含む全データをJSONで保存。iCloudやGoogleドライブに保管してください。</div>
-        <button class="big-btn green" onclick="doBackup()">💾 &nbsp;全データをバックアップ（JSON）</button>
-        <label class="big-btn" style="background:var(--card2);color:var(--muted);border:1px solid var(--border);cursor:pointer;justify-content:center">
-          📂 &nbsp;バックアップから復元
-          <input type="file" accept=".json" style="display:none" onchange="doRestore(this)">
-        </label>
-      </div>
-    </div>
     <button class="big-btn" style="margin-bottom:8px;background:#c43e1c" onclick="doPptx()">📑 &nbsp;PowerPoint出力</button>
     <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:4px;line-height:1.8;padding:0 8px">
       PDF印刷：印刷ダイアログで「PDFとして保存」を選択<br>
@@ -668,7 +628,7 @@ function renderList() {
       return '<span class="s-tag">'+t.slice(0,16)+'</span>';
     }).join('');
     var thumb = s.photos.length
-      ? '<div class="s-thumb"><img src="'+getPhotoSrc(s.photos[0])+'"></div>'
+      ? '<div class="s-thumb"><img src="'+s.photos[0]+'"></div>'
       : '<div class="s-ph">🔩</div>';
     div.innerHTML =
       '<span class="s-num">'+String(i+1).padStart(2,'0')+'</span>'+
@@ -699,11 +659,6 @@ function openDetail(id){
   document.getElementById('dItems').value        = s.items;
   document.getElementById('dFeatures').value     = s.features;
   document.getElementById('dNote').value         = s.note;
-  document.getElementById('dStr1').value         = s.str1||'';
-  document.getElementById('dStr2').value         = s.str2||'';
-  document.getElementById('dStr3').value         = s.str3||'';
-  document.getElementById('dStr4').value         = s.str4||'';
-  document.getElementById('dStr5').value         = s.str5||'';
   renderStars(s.rating);
   applyImgSize(imgSize);
   renderPhotos();
@@ -716,18 +671,11 @@ function save(){
   s.items    = document.getElementById('dItems').value;
   s.features = document.getElementById('dFeatures').value;
   s.note     = document.getElementById('dNote').value;
-  s.str1     = document.getElementById('dStr1').value;
-  s.str2     = document.getElementById('dStr2').value;
-  s.str3     = document.getElementById('dStr3').value;
-  s.str4     = document.getElementById('dStr4').value;
-  s.str5     = document.getElementById('dStr5').value;
   saveLS();
 }
 function goBack(){ save(); currentId=null; showTab('home'); }
 function deleteCurrent(){
   if(!currentId) return;
-  var s=suppliers.find(function(x){return x.id===currentId;});
-  if(!confirm('「'+(s&&s.name||'このサプライヤ')+'」を削除しますか？'))return;
   suppliers = suppliers.filter(function(s){return s.id!==currentId;});
   currentId=null; updBadge(); saveLS();
   toast('削除しました','var(--danger)'); showTab('home');
@@ -787,13 +735,12 @@ function handlePhoto(input) {
   var files = Array.from(input.files);
   if (!files.length) return;
   var loaded = 0;
+  // 圧縮設定：最大1200px、JPEG品質0.75
   var MAX_W = 1200, MAX_H = 1200, QUALITY = 0.75;
   toast('画像を圧縮中…', '#3a7bd5');
   files.forEach(function(file) {
     compressImage(file, MAX_W, MAX_H, QUALITY, function(dataUrl) {
-      // 新形式：{src, comment} オブジェクトで保存
-      // 旧形式（文字列）との互換性を保つ
-      s.photos.push({src:dataUrl, comment:''});
+      s.photos.push(dataUrl);
       loaded++;
       if (loaded === files.length) {
         saveLS(function() { renderPhotos(); toast('画像を追加しました（圧縮済）'); });
@@ -804,49 +751,21 @@ function handlePhoto(input) {
 }
 function removePhoto(idx){
   if(!currentId) return;
-  if(!confirm('この写真を削除しますか？'))return;
   getS(currentId).photos.splice(idx,1); saveLS(); renderPhotos();
 }
-function updatePhotoComment(idx, val){
-  if(!currentId) return;
-  var s=getS(currentId);
-  if(!s||!s.photos[idx])return;
-  s.photos[idx].comment=val;
-  saveLS();
-}
-function getPhotoSrc(p){ return typeof p==='string'?p:p.src; }
-function getPhotoComment(p){ return typeof p==='string'?'':p.comment||''; }
-
 function renderPhotos(){
   var s=getS(currentId), grid=document.getElementById('imgGrid'); if(!grid) return;
   grid.innerHTML='';
-  grid.className='img-grid '+(imgSize||'sm');
-  if(s){
-    s.photos.forEach(function(p,i){
-      var src=getPhotoSrc(p);
-      var comment=getPhotoComment(p);
-      var wrap=document.createElement('div');
-      wrap.style.cssText='position:relative;border-radius:8px;overflow:hidden;background:var(--tag);display:flex;flex-direction:column;';
-      // 画像
-      var imgDiv=document.createElement('div');
-      imgDiv.style.cssText='position:relative;aspect-ratio:1;';
-      imgDiv.innerHTML='<img src="'+src+'" style="width:100%;height:100%;object-fit:cover;display:block;">'+
-        '<button class="img-del" onclick="removePhoto('+i+')">✕</button>';
-      // コメント入力
-      var inp=document.createElement('input');
-      inp.type='text';
-      inp.placeholder='コメント…';
-      inp.value=comment;
-      inp.style.cssText='width:100%;background:rgba(0,0,0,.5);border:none;border-top:1px solid rgba(255,255,255,.1);color:#fff;font-size:10px;padding:4px 6px;outline:none;font-family:\'Noto Sans JP\',sans-serif;';
-      inp.addEventListener('input',function(){updatePhotoComment(i,inp.value);});
-      wrap.appendChild(imgDiv);
-      wrap.appendChild(inp);
-      grid.appendChild(wrap);
-    });
-  }
+  if(s){ s.photos.forEach(function(src,i){
+    var w=document.createElement('div'); w.className='img-wrap';
+    w.innerHTML='<img src="'+src+'"><button class="img-del" onclick="removePhoto('+i+')">✕</button>';
+    grid.appendChild(w);
+  }); }
+  // ライブラリボタン（capture なし）
   var lblLib=document.createElement('label'); lblLib.className='add-photo';
   lblLib.innerHTML='<span style="font-size:22px">🖼</span><span>ライブラリ</span><input type="file" accept="image/*" multiple onchange="handlePhoto(this)">';
   grid.appendChild(lblLib);
+  // カメラボタン（capture あり）
   var lblCam=document.createElement('label'); lblCam.className='add-photo';
   lblCam.innerHTML='<span style="font-size:22px">📷</span><span>カメラ</span><input type="file" accept="image/*" capture="environment" onchange="handlePhoto(this)">';
   grid.appendChild(lblCam);
@@ -894,15 +813,11 @@ function renderArchive(){
         '<button class="big-btn" style="flex:1;padding:9px;font-size:12px" onclick="printArchive('+realIdx+')">🖨 PDF</button>'+
         '<button class="big-btn blue" style="flex:1;padding:9px;font-size:12px" onclick="excelArchive('+realIdx+')">📊 CSV</button>'+
         '<button class="big-btn" style="flex:1;padding:9px;font-size:12px;background:#c43e1c" onclick="pptxArchive('+realIdx+')">📑 PPTX</button>'+
-        '<button class="big-btn" style="flex:1;padding:9px;font-size:12px;background:linear-gradient(135deg,#7c3aed,#4f1db5)" onclick="doZipPhotos(archive['+realIdx+'].suppliers,archive['+realIdx+'].meta&&archive['+realIdx+'].meta.name)">🗜 写真</button>'+
       '</div>';
     list.appendChild(div);
   });
 }
-function deleteArchive(idx){
-  if(!confirm('「'+(archive[idx]&&archive[idx].meta&&archive[idx].meta.name||'この報告書')+'」を削除しますか？'))return;
-  archive.splice(idx,1); saveLS(); renderArchive(); toast('削除しました','var(--danger)');
-}
+function deleteArchive(idx){ archive.splice(idx,1); saveLS(); renderArchive(); toast('削除しました','var(--danger)'); }
 
 // ===== 再編集 =====
 function editArchive(idx){
@@ -921,134 +836,55 @@ function editArchive(idx){
 // ===== PDF印刷 =====
 function buildPrintHtml(meta, sups){
   var today=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'});
-  var W='background:#ffffff;color:#1a2332;font-family:Arial,Helvetica,sans-serif;font-size:10px;';
-  var h='<div style="'+W+'padding:0;margin:0;">';
-
-  // 表紙
-  h+='<div style="'+W+'padding:24px 24px 16px;border-bottom:3px solid #f0a020;">';
-  h+='<div style="font-size:8px;letter-spacing:3px;color:#888;font-family:monospace;margin-bottom:6px;">Exhibition Inspection Report</div>';
-  h+='<div style="font-size:20px;font-weight:700;color:#1a2332;margin-bottom:12px;line-height:1.4;">'+escH(meta.name||'')+'</div>';
-  h+='<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-  if(meta.date)    h+='<tr><td style="color:#888;width:80px;padding:2px 0;font-size:8px;">開催日</td><td style="font-weight:600;padding:2px 0;">'+escH(meta.date)+'</td></tr>';
-  if(meta.venue)   h+='<tr><td style="color:#888;width:80px;padding:2px 0;font-size:8px;">会場</td><td style="font-weight:600;padding:2px 0;">'+escH(meta.venue)+'</td></tr>';
-  if(meta.reporter)h+='<tr><td style="color:#888;width:80px;padding:2px 0;font-size:8px;">担当者</td><td style="font-weight:600;padding:2px 0;">'+escH(meta.reporter)+'</td></tr>';
-  h+='<tr><td style="color:#888;width:80px;padding:2px 0;font-size:8px;">作成日</td><td style="font-weight:600;padding:2px 0;">'+today+'</td></tr>';
-  h+='</table></div>';
-
-  // 総評
-  h+='<div style="'+W+'padding:14px 24px;">';
-  h+='<div style="font-size:8px;letter-spacing:2px;color:#888;font-family:monospace;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #dde3ec;">開催概要・総評</div>';
-  h+='<div style="font-size:10px;line-height:1.8;background:#f4f6f8;padding:8px 10px;border-left:3px solid #f0a020;margin-bottom:10px;">'+(meta.overall?escH(meta.overall).replace(/\n/g,'<br>'):'（総評・メモなし）')+'</div>';
-  // 統計（tableで3列）
-  h+='<table style="width:100%;border-collapse:collapse;">';
-  h+='<tr>';
-  h+='<td style="text-align:center;background:#f4f6f8;border:1px solid #dde3ec;border-radius:4px;padding:6px;width:33%;">';
-  h+='<div style="font-size:18px;font-weight:700;color:#1a2332;font-family:monospace;">'+sups.length+'</div>';
-  h+='<div style="font-size:8px;color:#888;">視察社数</div></td>';
-  h+='<td style="width:6px;"></td>';
-  h+='<td style="text-align:center;background:#f4f6f8;border:1px solid #dde3ec;border-radius:4px;padding:6px;width:33%;">';
-  h+='<div style="font-size:18px;font-weight:700;color:#1a2332;font-family:monospace;">'+sups.filter(function(s){return s.rating>=4;}).length+'</div>';
-  h+='<div style="font-size:8px;color:#888;">高評価(★4+)</div></td>';
-  h+='<td style="width:6px;"></td>';
-  h+='<td style="text-align:center;background:#f4f6f8;border:1px solid #dde3ec;border-radius:4px;padding:6px;width:33%;">';
-  h+='<div style="font-size:18px;font-weight:700;color:#1a2332;font-family:monospace;">'+sups.reduce(function(a,s){return a+s.photos.length;},0)+'</div>';
-  h+='<div style="font-size:8px;color:#888;">撮影枚数</div></td>';
-  h+='</tr></table></div>';
-
-  // サプライヤ一覧
-  h+='<div style="'+W+'padding:0 24px 20px;">';
-  h+='<div style="font-size:8px;letter-spacing:2px;color:#888;font-family:monospace;margin-bottom:10px;padding-bottom:4px;border-bottom:1px solid #dde3ec;">Supplier List — '+sups.length+' Companies</div>';
-  sups.forEach(function(s,i){
-    h+='<div style="border:1px solid #dde3ec;border-radius:4px;overflow:hidden;margin-bottom:8px;page-break-inside:avoid;">';
-    // ヘッダー（背景色付き）
-    h+='<div style="background:#1a2332;padding:7px 10px;">';
-    h+='<span style="font-size:16px;color:#f0a020;font-weight:700;font-family:monospace;margin-right:8px;">'+String(i+1).padStart(2,'0')+'</span>';
-    h+='<span style="font-size:12px;font-weight:600;color:#ffffff;">'+escH(s.name||'（未入力）')+'</span>';
-    if(s.rating)h+='<span style="color:#f0a020;font-size:11px;float:right;">'+'★'.repeat(s.rating)+'</span>';
-    h+='</div>';
-    // ボディ（tableで3列）
-    h+='<table style="width:100%;border-collapse:collapse;">';
-    h+='<tr>';
-    h+='<td style="padding:6px 8px;border-right:1px solid #dde3ec;vertical-align:top;width:33%;">';
-    h+='<div style="font-size:7px;color:#888;margin-bottom:2px;">出展品目</div>';
-    h+='<div style="font-size:9px;line-height:1.5;color:#1a2332;">'+escH(s.items||'―')+'</div></td>';
-    h+='<td style="padding:6px 8px;border-right:1px solid #dde3ec;vertical-align:top;width:33%;">';
-    h+='<div style="font-size:7px;color:#888;margin-bottom:2px;">特色・強み</div>';
-    h+='<div style="font-size:9px;line-height:1.5;color:#1a2332;">'+escH(s.features||'―')+'</div>';
-    var strLabels=[['技術力',s.str1],['素材・材質',s.str2],['納期・ロット',s.str3],['認証・資格',s.str4],['提案・コスト',s.str5]];
-    var hasStr=strLabels.some(function(x){return x[1];});
-    if(hasStr){
-      h+='<div style="margin-top:4px;border-top:1px solid #eee;padding-top:4px;">';
-      strLabels.forEach(function(x){
-        if(x[1])h+='<div style="font-size:8px;color:#1a2332;margin-top:2px;"><span style="color:#888;min-width:52px;display:inline-block;">'+escH(x[0])+'：</span>'+escH(x[1])+'</div>';
-      });
-      h+='</div>';
-    }
-    h+='</td>';
-    h+='<td style="padding:6px 8px;vertical-align:top;width:34%;">';
-    h+='<div style="font-size:7px;color:#888;margin-bottom:2px;">メモ・連絡先</div>';
-    h+='<div style="font-size:9px;line-height:1.5;color:#1a2332;">'+escH(s.note||'―')+'</div></td>';
-    h+='</tr></table>';
-    // 写真
-    if(s.photos&&s.photos.length){
-      h+='<table style="width:100%;border-collapse:collapse;border-top:1px solid #dde3ec;padding:6px;page-break-inside:avoid;break-inside:avoid;">';
-      h+='<tr>';
-      s.photos.slice(0,4).forEach(function(p){
-        var src=getPhotoSrc(p);
-        var comment=getPhotoComment(p);
-        h+='<td style="width:25%;padding:4px;vertical-align:top;">';
-        h+='<img src="'+src+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:3px;border:1px solid #dde3ec;display:block;max-height:140px;">';
-        if(comment)h+='<div style="font-size:8px;color:#555;margin-top:2px;text-align:center;">'+escH(comment)+'</div>';
-        h+='</td>';
-      });
-      h+='</tr></table>';
-    }
-    h+='</div>';
-  });
-  h+='</div>';
-  h+='<div style="text-align:center;font-size:8px;color:#aaa;padding:8px;border-top:1px solid #eee;font-family:monospace;">EXPO REPORT &nbsp;|&nbsp; '+today+' &nbsp;|&nbsp; '+escH(meta.name||'')+'</div>';
-  h+='</div>';
-  return h;
-}
-function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
-function openPrintWindow(html){
-  var appStyles=document.querySelectorAll('style,link[rel="stylesheet"]');
-  var disabled=[];
-  appStyles.forEach(function(el){
-    if(el.id!=='printForceStyle'){
-      el.setAttribute('media','none-disabled');
-      disabled.push(el);
-    }
-  });
-  var old=document.getElementById('printForceStyle');
-  if(old)old.parentNode.removeChild(old);
-  var s=document.createElement('style');
-  s.id='printForceStyle';
-  s.textContent=
-    'html,body{background:#ffffff!important;color:#1a2332!important;color-scheme:light!important;font-family:sans-serif!important;}'+
-    'body>*{display:none!important;}'+
-    '#printArea{display:block!important;background:#ffffff!important;color:#1a2332!important;}';
-  document.head.appendChild(s);
-  var pa=document.getElementById('printArea');
-  pa.innerHTML=html;
-  setTimeout(function(){
-    window.print();
-    setTimeout(function(){
-      disabled.forEach(function(el){el.setAttribute('media','all');});
-      var st=document.getElementById('printForceStyle');
-      if(st)st.parentNode.removeChild(st);
-      pa.innerHTML='';
-    },2000);
-  },800);
+  return '<div class="p-cover">'+
+    '<div class="p-label">Exhibition Inspection Report</div>'+
+    '<div class="p-title">'+meta.name+'</div>'+
+    '<div class="p-meta-grid">'+
+      (meta.date?'<div><div class="p-ml">開催日</div><div class="p-mv">'+meta.date+'</div></div>':'')+
+      (meta.venue?'<div><div class="p-ml">会場</div><div class="p-mv">'+meta.venue+'</div></div>':'')+
+      (meta.reporter?'<div><div class="p-ml">担当者</div><div class="p-mv">'+meta.reporter+'</div></div>':'')+
+      '<div><div class="p-ml">作成日</div><div class="p-mv">'+today+'</div></div>'+
+    '</div>'+
+  '</div>'+
+  '<div class="p-summary">'+
+    '<div class="p-sec-title">開催概要・総評</div>'+
+    '<div class="p-text">'+(meta.overall?meta.overall.replace(/\n/g,'<br>'):'（総評・メモなし）')+'</div>'+
+    '<div class="p-stats">'+
+      '<div class="p-stat"><div class="p-stat-n">'+sups.length+'</div><div class="p-stat-l">視察社数</div></div>'+
+      '<div class="p-stat"><div class="p-stat-n">'+sups.filter(function(s){return s.rating>=4;}).length+'</div><div class="p-stat-l">高評価(★4+)</div></div>'+
+      '<div class="p-stat"><div class="p-stat-n">'+sups.reduce(function(a,s){return a+s.photos.length;},0)+'</div><div class="p-stat-l">撮影枚数</div></div>'+
+    '</div>'+
+  '</div>'+
+  '<div class="p-section">'+
+    '<div class="p-list-title">Supplier List — '+sups.length+' Companies</div>'+
+    sups.map(function(s,i){
+      return '<div class="p-card">'+
+        '<div class="p-card-hd"><span class="p-cnum">'+String(i+1).padStart(2,'0')+'</span>'+
+        '<span class="p-cnm">'+(s.name||'（未入力）')+'</span>'+
+        (s.rating?'<span class="p-cst">'+'★'.repeat(s.rating)+'</span>':'')+
+        '</div>'+
+        '<div class="p-card-body">'+
+          '<div class="p-cell"><div class="p-clbl">出展品目</div><div class="p-cval">'+(s.items||'―')+'</div></div>'+
+          '<div class="p-cell"><div class="p-clbl">特色・強み</div><div class="p-cval">'+(s.features||'―')+'</div></div>'+
+          '<div class="p-cell"><div class="p-clbl">メモ・連絡先</div><div class="p-cval">'+(s.note||'―')+'</div></div>'+
+        '</div>'+
+        (s.photos.length?'<div class="p-imgs">'+s.photos.slice(0).map(function(p){return '<img src="'+p+'">';}).join('')+'</div>':'')+
+        '</div>';
+    }).join('')+
+  '</div>'+
+  '<div class="p-footer">EXPO REPORT &nbsp;|&nbsp; '+today+' &nbsp;|&nbsp; '+meta.name+'</div>';
 }
 
 function doPrint(){
-  openPrintWindow(buildPrintHtml(getMeta(),suppliers));
+  var pa=document.getElementById('printArea');
+  pa.innerHTML=buildPrintHtml(getMeta(),suppliers);
+  window.print();
 }
 function printArchive(idx){
   var rep=archive[idx];
-  openPrintWindow(buildPrintHtml(rep.meta,rep.suppliers));
+  var pa=document.getElementById('printArea');
+  pa.innerHTML=buildPrintHtml(rep.meta,rep.suppliers);
+  window.print();
 }
 
 // ===== EXCEL =====
@@ -1075,89 +911,6 @@ function downloadFile(content, filename, type){
   document.body.removeChild(a);
   setTimeout(function(){URL.revokeObjectURL(url);},1000);
 }
-function doBackup(){
-  var data={
-    version:1,
-    exportedAt:new Date().toISOString(),
-    suppliers:suppliers,
-    archive:archive,
-    meta:{
-      name:document.getElementById('exName').value,
-      date:document.getElementById('exDate').value,
-      venue:document.getElementById('exVenue').value,
-      reporter:document.getElementById('exReporter').value,
-      overall:document.getElementById('overall').value
-    }
-  };
-  var blob=new Blob([JSON.stringify(data)],{type:'application/json'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  var fname='expo_backup_'+new Date().toISOString().slice(0,10)+'.json';
-  a.href=url;a.download=fname;
-  document.body.appendChild(a);a.click();
-  document.body.removeChild(a);
-  setTimeout(function(){URL.revokeObjectURL(url);},2000);
-  toast('バックアップを保存しました（'+fname+'）');
-}
-
-function doRestore(input){
-  var file=input.files[0];
-  if(!file)return;
-  if(!confirm('現在のデータは上書きされます。復元しますか？')){input.value='';return;}
-  var r=new FileReader();
-  r.onload=function(e){
-    try{
-      var data=JSON.parse(e.target.result);
-      if(!data.version){toast('バックアップファイルが正しくありません','var(--danger)');return;}
-      suppliers=data.suppliers||[];
-      archive=data.archive||[];
-      if(data.meta){
-        document.getElementById('exName').value=data.meta.name||'';
-        document.getElementById('exDate').value=data.meta.date||'';
-        document.getElementById('exVenue').value=data.meta.venue||'';
-        document.getElementById('exReporter').value=data.meta.reporter||'';
-        document.getElementById('overall').value=data.meta.overall||'';
-      }
-      saveLS(function(){
-        updBadge();renderList();
-        toast('✅ 復元しました！（'+suppliers.length+'社・アーカイブ'+archive.length+'件）');
-      });
-    }catch(ex){
-      toast('復元エラー：'+ex.message,'var(--danger)');
-    }
-  };
-  r.readAsText(file);
-  input.value='';
-}
-
-function doZipPhotos(supList, label){
-  var sups = supList || suppliers;
-  var name = label || getMeta().name || '展示会レポート';
-  var entries=[];
-  sups.forEach(function(s){
-    (s.photos||[]).forEach(function(p,pi){
-      var src=getPhotoSrc(p);
-      var ext=src.indexOf('image/png')>=0?'png':'jpg';
-      entries.push({path:'supplier'+String(sups.indexOf(s)+1).padStart(2,'0')+'/'+(pi+1)+'.'+ext,src:src});
-    });
-  });
-  if(!entries.length){toast('写真がありません','var(--danger)');return;}
-  toast('ZIP生成中… ('+entries.length+'枚)','#7c3aed');
-  var zip=new JSZip();
-  entries.forEach(function(e){
-    zip.file(e.path,e.src.split(',')[1]||'',{base64:true});
-  });
-  zip.generateAsync({type:'blob'}).then(function(blob){
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement('a');
-    a.href=url;a.download=name+'_写真.zip';
-    document.body.appendChild(a);a.click();
-    document.body.removeChild(a);
-    setTimeout(function(){URL.revokeObjectURL(url);},2000);
-    toast('ZIPをダウンロードしました（'+entries.length+'枚）');
-  }).catch(function(e){toast('ZIP生成エラー:'+e.message,'var(--danger)');});
-}
-
 function doExcel(){
   var m=getMeta();
   downloadFile(buildCsv(m,suppliers), m.name+'.csv', 'text/csv;charset=utf-8');
@@ -1436,7 +1189,7 @@ function generatePptx(meta, sups){
   // ===== スライド3〜: 各社 =====
   sups.forEach(function(s,si){
     var shapes=[], iRels=[], i=spId;
-    var photos=(s.photos||[]).slice(0,4);
+    var photos=(s.photos||[]).slice(0);
     var hasP=photos.length>0;
     var tw=hasP?Math.round(PW*.52):Math.round(PW*.92);
     var lx=Math.round(PW*.04);
@@ -1566,9 +1319,11 @@ openDB(function() {
 });
 </script>
 <script>
-if('serviceWorker' in navigator){
-  window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js');
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").then(function(r){
+    console.log("SW registered");
+  }).catch(function(e){
+    console.log("SW error:", e);
   });
 }
 </script>
